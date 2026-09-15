@@ -32,7 +32,7 @@ export function buildQuestions(animal) {
       text: `${animal.name}${topicParticle(animal.name)} 어떻게 이동할까요?`,
       correct: movementOptionLabels[moveKey],
       hintKey: "lifestyle",
-      options: makeMovementOptions(moveKey)
+      options: makeMovementOptions(animal, moveKey)
     },
     finalQuestion
   ];
@@ -160,15 +160,27 @@ function getMovementKey(animal) {
   if (animal.hasWings && animal.inWater) return "flyAndSwim";
   if (animal.hasWings) return "fly";
   if (animal.crawls) return animal.hasLegs ? "crawlWithLegs" : "crawlNoLegs";
-  if (animal.inWater) return "swimLegs";
+  if (animal.inWater) return animal.hasLegs ? "walkRun" : "swimLegs";
   return "walkRun";
 }
 
-function makeMovementOptions(correctKey) {
+function makeMovementOptions(animal, correctKey) {
   return shuffle([
     movementOptionLabels[correctKey],
-    ...shuffle(movementDistractors[correctKey]).slice(0, 2).map(key => movementOptionLabels[key])
+    ...shuffle(movementDistractors[correctKey].filter(key => !movementApplies(animal, key))).slice(0, 2).map(key => movementOptionLabels[key])
   ]);
+}
+
+/** 이 동물에게도 맞는 이동 방식인지 — 보기로 내면 정답이 두 개가 됩니다 */
+function movementApplies(animal, key) {
+  const move = animal.move || "";
+  if (key === "crawlNoLegs") return !animal.hasLegs && (animal.crawls || move.includes("기어"));
+  if (key === "crawlWithLegs") return animal.hasLegs && (animal.crawls || move.includes("기어"));
+  if (key === "walkRun") return animal.hasLegs;
+  if (key === "fly" || key === "flyAndSwim") return animal.hasWings;
+  if (key === "swimFins") return animal.hasFins;
+  if (key === "swimLegs") return animal.inWater || move.includes("헤엄");
+  return true;
 }
 
 const specialEnvironmentQuiz = {
