@@ -1,10 +1,25 @@
-// 도감 — 지역 탭 + 카드 그리드 (수집: 사진, 미수집: 실루엣 ?)
+// 도감 — 지역 탭 + 반응형 카드 그리드 (수집: 사진, 미수집: 실루엣/글)
 import Phaser from "phaser/dist/phaser-arcade-physics.min.js";
-import { regions, regionById, animalEmoji } from "../data/regions.js";
+import { regions, regionById } from "../data/regions.js";
 import { animalById } from "../data/animals.js";
-import { readCollected, regionStatus, masterStatus, hasBadge } from "../systems/ProgressStore.js";
-import { ensureAnimalTexture } from "../world/AnimalSprites.js";
-import { KOREAN_FONT, createWoodButton, createWoodPanel } from "../ui/UiHelpers.js";
+import { readCollected, regionStatus, masterStatus, hasBadge, badgeCount } from "../systems/ProgressStore.js";
+import {
+  createScreen,
+  createElement,
+  createButton,
+  createCompletionBadge,
+  createPhoto,
+  disposePhotos
+} from "../ui/ScreenUi.js";
+import "../ui/dex-screen.css";
+
+const FOREST_URL = new URL(`${import.meta.env.BASE_URL}assets/detailed-pixel/dex-forest.webp`, document.baseURI).href;
+
+function originLabel(from) {
+  if (from === "OverworldScene") return "탐험으로";
+  if (from === "TitleScene") return "← 시작으로";
+  return "월드맵";
+}
 
 export default class DexScene extends Phaser.Scene {
   constructor() {
@@ -13,13 +28,16 @@ export default class DexScene extends Phaser.Scene {
 
   init(data = {}) {
     this._leaving = false;
-    this.detailRoot = null;
-    this.detailCloseButton = null;
-    this.detailAnimalId = null;
     this.from = data.from || "TitleScene";
     this.returnPos = data.returnPos || null;
     this.highlightId = data.highlightId || null;
     this.regionId = data.regionId || this.findRegionOf(this.highlightId) || "around";
+    if (!regionById[this.regionId]) this.regionId = "around";
+    this.mapCurrentRegionId = data.currentRegionId || null;
+    this.detailAnimalId = null;
+    this.originCard = null;
+    this.savedScroll = 0;
+    this.ui = null;
   }
 
   findRegionOf(animalId) {
@@ -29,267 +47,280 @@ export default class DexScene extends Phaser.Scene {
   }
 
   create() {
-    const { width, height } = this.cameras.main;
-    this.add.rectangle(width / 2, height / 2, width, height, 0xf3ebd2);
-    this.add.rectangle(width / 2, 26, width, 52, 0x8fc47a, 0.4);
-
-    const master = masterStatus();
-    this.add.text(16, 14, "📖 동물 도감", {
-      fontFamily: KOREAN_FONT, fontSize: "20px", color: "#0f6f68", fontStyle: "bold"
+    this.cameras.main.setBackgroundColor("#accec1");
+    this.ui = createScreen(this, {
+      label: "동물 도감",
+      className: "dex-screen",
+      onEscape: () => this.onEscape()
     });
-    this.add.text(16, 38, `전체 ${master.count} / ${master.target}${master.complete ? " · 🏆 도감 마스터!" : ""}`, {
-      fontFamily: KOREAN_FONT, fontSize: "12px", color: "#5d4a38"
-    });
-
-    const backLabel = this.from === "OverworldScene"
-      ? "← 탐험으로"
-      : this.from === "WorldMapScene"
-        ? "← 월드맵"
-        : "← 시작으로";
-    this.backButton = createWoodButton(this, width - 66, 26, backLabel, () => this.goBack(), {
-      width: 116,
-      height: 42,
-      fontSize: "13px"
-    }).setName("dex-back-button");
-
-    this.input.keyboard?.on("keydown-ESC", () => this.goBack());
-    this.input.keyboard?.on("keydown-D", () => this.goBack());
-
-    this.buildTabs();
-    this.cardNodes = [];
+    this.ui.root.style.setProperty("--dex-forest", `url("${FOREST_URL}")`);
+    this.buildChrome();
     this.renderRegion();
+  }
+
+  onEscape() {
+    if (this.detailAnimalId) this.closeDetail();
+    else this.goBack();
   }
 
   goBack() {
     if (this._leaving) return;
     this._leaving = true;
-    if (this.detailRoot) {
-      this.closeDetail();
-      this._leaving = false;
-    } else if (this.from === "OverworldScene") {
+    this.ui?.destroy();
+    this.ui = null;
+    if (this.from === "OverworldScene") {
       this.scene.start("OverworldScene", { returnPos: this.returnPos });
-    } else if (this.from === "WorldMapScene") {
-      this.scene.start("WorldMapScene", { selectedRegionId: this.regionId });
-    } else {
+    } else if (this.from === "TitleScene") {
       this.scene.start("TitleScene");
+    } else {
+      this.scene.start("WorldMapScene", {
+        selectedRegionId: this.regionId,
+        currentRegionId: this.mapCurrentRegionId || undefined
+      });
     }
   }
 
-  buildTabs() {
-    const { width } = this.cameras.main;
-    const tabW = (width - 24) / regions.length;
-    this.tabButtons = regions.map((region, i) => {
-      const status = regionStatus(region.id);
-      const badge = hasBadge(region.id) ? "🎖" : "";
-      const label = `${region.emoji} ${region.short} ${status.count}/${status.target}${badge}`;
-      const btn = createWoodButton(
-        this,
-        12 + tabW / 2 + i * tabW,
-        72,
-        label,
-        () => {
-          this.regionId = region.id;
-          this.refreshTabs();
-          this.renderRegion();
-        },
-        { width: tabW - 6, height: 30, fontSize: "11px" }
-      );
-      btn.regionId = region.id;
+  buildChrome() {
+    const root = this.ui.root;
+    const header = createElement("header", "ui-header dex-header");
+    const heading = createElement("div", "dex-heading");
+    heading.append(createElement("h1", "", "동물 도감"));
+    this.progressEl = createElement("p", "ui-muted");
+    this.masterReward = createElement("div", "ui-note");
+    this.masterReward.append(
+      createCompletionBadge({ master: true }),
+      createElement("span", "", "도감 마스터")
+    );
+    heading.append(this.progressEl, this.masterReward);
+    this.refreshProgress();
+    const back = createButton(originLabel(this.from), () => this.goBack(), {
+      primary: true,
+      className: "dex-back"
+    });
+    back.id = "dex-back-button";
+    back.dataset.name = "dex-back-button";
+    const actions = createElement("div", "ui-actions");
+    actions.append(back);
+    header.append(heading, actions);
+
+    this.tabs = createElement("nav", "ui-tabs dex-tabs");
+    this.tabs.setAttribute("aria-label", "서식지");
+    this.tabButtons = regions.map((region) => {
+      const btn = createButton("", () => this.selectRegion(region.id), { className: "dex-tab" });
+      btn.dataset.regionId = region.id;
+      btn.type = "button";
+      this.tabs.append(btn);
       return btn;
     });
     this.refreshTabs();
+
+    this.listSection = createElement("section", "dex-list-section");
+    this.listBody = createElement("div", "ui-body dex-list");
+    this.introEl = createElement("p", "ui-note dex-intro");
+    this.grid = createElement("div", "ui-grid");
+    this.listBody.append(this.introEl, this.grid);
+    this.listSection.append(this.listBody);
+
+    this.detailSection = createElement("section", "ui-body dex-detail");
+    this.detailSection.id = "dex-detail";
+    this.detailSection.dataset.name = "dex-detail";
+    this.detailSection.hidden = true;
+    this.detailSection.inert = true;
+    this.detailBody = createElement("div", "dex-detail-body");
+    this.detailSection.append(this.detailBody);
+
+    root.append(header, this.tabs, this.listSection, this.detailSection);
+  }
+
+  refreshProgress() {
+    const master = masterStatus();
+    const badges = badgeCount();
+    const parts = [`전체 ${master.count} / ${master.target}`, `배지 ${badges} / ${regions.length}`];
+    if (master.complete) parts.push("도감 마스터");
+    this.progressEl.textContent = parts.join(" · ");
+    this.masterReward.hidden = !hasBadge("master");
+  }
+
+  tabLabel(region) {
+    const status = regionStatus(region.id);
+    return `${region.short} ${status.count}/${status.target}`;
   }
 
   refreshTabs() {
     this.tabButtons.forEach((btn) => {
-      const active = btn.regionId === this.regionId;
-      btn.buttonBg.setTint?.(active ? 0xffe08a : 0xd9c8a8);
-      btn.setAlpha(active ? 1 : 0.85);
+      const region = regionById[btn.dataset.regionId];
+      const active = region.id === this.regionId;
+      btn.replaceChildren(document.createTextNode(this.tabLabel(region)));
+      if (hasBadge(region.id)) {
+        btn.append(createCompletionBadge({ regionId: region.id }));
+      }
+      btn.classList.toggle("ui-button--primary", active);
+      btn.setAttribute("aria-current", active ? "page" : "false");
+      btn.setAttribute("aria-pressed", active ? "true" : "false");
+      btn.setAttribute("aria-selected", active ? "true" : "false");
     });
+  }
+
+  selectRegion(regionId) {
+    if (!regionById[regionId]) return;
+    const same = this.regionId === regionId;
+    if (same && !this.detailAnimalId) return;
+    if (this.detailAnimalId) this.closeDetail({ restoreFocus: same });
+    if (same) return;
+    this.regionId = regionId;
+    this.refreshTabs();
+    this.renderRegion();
   }
 
   renderRegion() {
-    this.cardNodes.forEach((n) => n.destroy(true));
-    this.cardNodes = [];
-
-    const { width } = this.cameras.main;
     const region = regionById[this.regionId];
+    disposePhotos(this.grid);
+    this.grid.replaceChildren();
+    if (!region) {
+      this.introEl.textContent = "";
+      return;
+    }
+    this.introEl.textContent = `${region.name} — ${region.intro}`;
     const collected = new Set(readCollected());
-
-    const intro = this.add.text(width / 2, 96, `${region.emoji} ${region.name} — ${region.intro}`, {
-      fontFamily: KOREAN_FONT, fontSize: "11px", color: "#5d4a38"
-    }).setOrigin(0.5);
-    this.cardNodes.push(intro);
-
-    const cols = 4;
-    const cardW = 148;
-    const cardH = 116;
-    const startX = width / 2 - ((cols - 1) * cardW) / 2;
-    const startY = 168;
-
-    region.spawns.forEach((spawn, index) => {
+    region.spawns.forEach((spawn) => {
       const animal = animalById[spawn.id];
       if (!animal) return;
-      const got = collected.has(spawn.id);
-      const cx = startX + (index % cols) * cardW;
-      const cy = startY + Math.floor(index / cols) * cardH;
-
-      const root = this.add.container(cx, cy);
-      root.setName(`dex-card-${spawn.id}`);
-      this.cardNodes.push(root);
-
-      const panel = createWoodPanel(this, 0, 2, cardW - 10, cardH - 2, {
-        tint: got ? null : 0xcfc4ae
-      });
-      root.buttonBg = panel;
-      if (got) {
-        panel.setInteractive({ useHandCursor: true });
-        panel.on("pointerdown", () => panel.setTint?.(0xffe08a));
-        panel.on("pointerout", () => panel.clearTint?.());
-        panel.on("pointerup", () => {
-          panel.clearTint?.();
-          this.showDetail(spawn.id);
-        });
-      }
-      if (this.highlightId === spawn.id) {
-        const glow = this.add.rectangle(0, 0, cardW - 4, cardH - 2, 0xffd84d, 0.25);
-        root.add(glow);
-      }
-      root.add(panel);
-
-      // 사진 or 실루엣
-      if (got && animal.image) {
-        const key = `animal-${spawn.id}`;
-        const holder = this.add.container(0, -14);
-        root.add(holder);
-        const drawThumb = () => {
-          if (!this.textures.exists(key) || !this.scene.isActive()) return;
-          holder.add(this.add.image(0, 0, key).setDisplaySize(58, 58));
-        };
-        if (this.textures.exists(key)) {
-          drawThumb();
-        } else {
-          this.load.image(key, animal.image);
-          this.load.once(Phaser.Loader.Events.COMPLETE, drawThumb);
-          this.load.start();
-        }
-      } else {
-        // 미수집: 자체 제작 픽셀 실루엣 (모양 힌트) — 없으면 ? 표시
-        const miniKey = ensureAnimalTexture(this, spawn.id);
-        if (miniKey) {
-          const silhouette = this.add.image(0, -14, miniKey).setDisplaySize(48, 48);
-          if (!got) {
-            silhouette.setTintFill(0x6b5844);
-            silhouette.setAlpha(0.85);
-          }
-          root.add(silhouette);
-          if (!got) {
-            root.add(this.add.text(16, -28, "?", {
-              fontSize: "15px", fontFamily: KOREAN_FONT, color: "#8a6a4a", fontStyle: "bold"
-            }).setOrigin(0.5));
-          }
-        } else {
-          const circle = this.add.circle(0, -14, 26, 0x6b5844, got ? 0.25 : 0.75);
-          const mark = this.add.text(0, -14, "?", {
-            fontSize: "22px", fontFamily: KOREAN_FONT, color: "#fff8e7"
-          }).setOrigin(0.5);
-          root.add([circle, mark]);
-        }
-      }
-
-      const title = got ? `${animalEmoji[spawn.id] || ""} ${animal.name}` : "???";
-      root.add(this.add.text(0, 20, title, {
-        fontFamily: KOREAN_FONT, fontSize: "13px", color: "#3d2410", fontStyle: "bold"
-      }).setOrigin(0.5));
-      root.add(this.add.text(0, 38, got ? animal.habitat : `${spawn.zone}에서 만나요`, {
-        fontFamily: KOREAN_FONT, fontSize: "9px", color: "#6b5a44",
-        align: "center", wordWrap: { width: cardW - 30 }
-      }).setOrigin(0.5));
+      this.grid.append(this.buildCard(spawn, animal, collected.has(spawn.id)));
     });
+    this.restoreHighlight();
   }
 
-  showDetail(animalId) {
+  buildCard(spawn, animal, got) {
+    const card = createElement("article", `ui-card dex-card${got ? "" : " dex-card--locked"}`);
+    card.id = `dex-card-${spawn.id}`;
+    card.dataset.name = `dex-card-${spawn.id}`;
+    card.dataset.animalId = spawn.id;
+    if (this.highlightId === spawn.id) card.classList.add("dex-card--highlight");
+
+    if (got) {
+      card.tabIndex = 0;
+      card.setAttribute("role", "button");
+      card.setAttribute("aria-label", `${animal.name} 자세히 보기`);
+      const open = () => this.showDetail(spawn.id, card);
+      card.addEventListener("click", (event) => {
+        if (event.target.closest(".ui-button")) return;
+        open();
+      });
+      card.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        open();
+      });
+      card.append(
+        createPhoto(animal.image, animal.name, { fit: "cover" }),
+        createElement("p", "dex-card-title", animal.name),
+        createElement("p", "ui-muted", animal.habitat)
+      );
+    } else {
+      const mark = createElement("div", "dex-silhouette", "?");
+      mark.setAttribute("aria-hidden", "true");
+      card.append(
+        mark,
+        createElement("p", "dex-card-title", "???"),
+        createElement("p", "ui-muted", `${spawn.zone}에서 만나요`)
+      );
+      card.setAttribute("aria-label", `아직 만나지 않은 동물. ${spawn.zone}에서 만나요`);
+    }
+    return card;
+  }
+
+  restoreHighlight() {
+    if (!this.highlightId) return;
+    const card = this.grid.querySelector(`[data-animal-id="${CSS.escape(this.highlightId)}"]`);
+    card?.scrollIntoView({ block: "nearest", inline: "nearest" });
+    if (card && !card.classList.contains("dex-card--locked")) card.focus();
+  }
+
+  showDetail(animalId, originCard) {
     if (!readCollected().includes(animalId)) return;
     const animal = animalById[animalId];
     if (!animal) return;
 
-    this.closeDetail();
-    this.detailAnimalId = animalId;
-
-    const { width, height } = this.cameras.main;
-    const region = regions.find((item) => item.spawns.some((spawn) => spawn.id === animalId));
-    const root = this.add.container(0, 0).setDepth(3000).setName("dex-detail");
-    const blocker = this.add.rectangle(width / 2, height / 2, width, height, 0x15251d, 0.78)
-      .setInteractive();
-    const panel = createWoodPanel(this, width / 2, height / 2, 584, 316);
-    const portraitFrame = createWoodPanel(this, 124, 142, 160, 156, { tint: 0xd8c79f });
-    root.add([blocker, panel, portraitFrame]);
-
-    const portraitKey = `animal-${animalId}`;
-    if (this.textures.exists(portraitKey)) {
-      root.add(this.add.image(124, 142, portraitKey).setDisplaySize(140, 136));
-    } else {
-      const fallbackKey = ensureAnimalTexture(this, animalId);
-      if (fallbackKey) root.add(this.add.image(124, 142, fallbackKey).setDisplaySize(112, 112));
-      else root.add(this.add.text(124, 142, animalEmoji[animalId] || "?", { fontSize: "52px" }).setOrigin(0.5));
+    if (!this.detailAnimalId) {
+      this.savedScroll = this.listSection.scrollTop;
+      this.listSection.hidden = true;
+      this.listSection.inert = true;
+      this.detailSection.hidden = false;
+      this.detailSection.inert = false;
     }
 
-    root.add(this.add.text(220, 38, `${animalEmoji[animalId] || ""} ${animal.name}`, {
-      fontFamily: KOREAN_FONT,
-      fontSize: "24px",
-      color: "#3d2410",
-      fontStyle: "bold"
-    }));
-    root.add(this.add.text(220, 70, `${region?.emoji || ""} ${region?.name || animal.habitat} · 교과서 ${animal.page}`, {
-      fontFamily: KOREAN_FONT,
-      fontSize: "11px",
-      color: "#6b4226"
-    }));
-    root.add(this.add.text(220, 98, `사는 곳  ${animal.habitat}\n움직임  ${animal.move}\n생김새  ${animal.body.join(", ")}`, {
-      fontFamily: KOREAN_FONT,
-      fontSize: "12px",
-      color: "#3d2410",
-      lineSpacing: 5,
-      wordWrap: { width: 360 }
-    }));
-    root.add(this.add.text(220, 178, `관찰 포인트\n${animal.point}`, {
-      fontFamily: KOREAN_FONT,
-      fontSize: "11px",
-      color: "#5d4a38",
-      fontStyle: "bold",
-      lineSpacing: 3,
-      wordWrap: { width: 360 }
-    }));
-    root.add(this.add.text(220, 232, `환경과의 관계\n${animal.relation}`, {
-      fontFamily: KOREAN_FONT,
-      fontSize: "11px",
-      color: "#5d4a38",
-      fontStyle: "bold",
-      lineSpacing: 3,
-      wordWrap: { width: 360 }
-    }));
-    root.add(this.add.text(124, 242, "✓ 포획 완료", {
-      fontFamily: KOREAN_FONT,
-      fontSize: "13px",
-      color: "#2d6a3f",
-      fontStyle: "bold"
-    }).setOrigin(0.5));
-
-    this.detailRoot = root;
-    this.detailCloseButton = createWoodButton(this, 510, 316, "← 도감으로", () => this.closeDetail(), {
-      width: 150,
-      height: 40,
-      fontSize: "14px",
-      tint: 0xffe08a,
-      depth: 3100
-    }).setName("dex-detail-close");
+    this.detailAnimalId = animalId;
+    this.originCard = originCard || this.grid.querySelector(`[data-animal-id="${CSS.escape(animalId)}"]`);
+    disposePhotos(this.detailBody);
+    this.detailBody.replaceChildren(this.buildDetail(animal, animalId));
+    this.detailSection.querySelector("#dex-detail-close")?.focus();
   }
 
-  closeDetail() {
-    this.detailRoot?.destroy(true);
-    this.detailCloseButton?.destroy(true);
-    this.detailRoot = null;
-    this.detailCloseButton = null;
+  buildDetail(animal, animalId) {
+    const region = regions.find((item) => item.spawns.some((spawn) => spawn.id === animalId));
+    const wrap = createElement("div");
+
+    const close = createButton("목록으로", () => this.closeDetail(), {
+      primary: true,
+      className: "dex-detail-close"
+    });
+    close.id = "dex-detail-close";
+    close.dataset.name = "dex-detail-close";
+    const actions = createElement("div", "ui-actions dex-detail-actions");
+    actions.append(close);
+
+    const layout = createElement("div", "ui-two-column dex-detail-layout");
+    const media = createElement("div", "dex-detail-media");
+    media.append(createPhoto(animal.image, animal.name, { fit: "contain" }));
+    media.append(createElement("p", "dex-status", "포획 완료"));
+
+    const facts = createElement("div", "ui-card dex-facts");
+    facts.append(
+      createElement("h2", "dex-detail-title", animal.name),
+      createElement("p", "ui-muted", `${region?.name || animal.habitat} · 교과서 ${animal.page}`)
+    );
+    facts.append(
+      this.fact("사는 곳", animal.habitat),
+      this.fact("움직임", animal.move),
+      this.fact("생김새", animal.body.join(", ")),
+      this.fact("관찰 포인트", animal.point),
+      this.fact("환경과의 관계", animal.relation),
+      this.fact("교과서", animal.page)
+    );
+    if (animal.source) {
+      const credit = createElement("div", "dex-fact");
+      credit.append(createElement("p", "ui-kicker", "출처"));
+      const link = createElement("a", "dex-source", "위키백과에서 더 보기");
+      link.href = animal.source;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      credit.append(link);
+      facts.append(credit);
+    }
+
+    layout.append(media, facts);
+    wrap.append(actions, layout);
+    return wrap;
+  }
+
+  fact(label, value) {
+    const row = createElement("div", "dex-fact");
+    row.append(createElement("p", "ui-kicker", label), createElement("p", "dex-fact-body", value));
+    return row;
+  }
+
+  closeDetail({ restoreFocus = true } = {}) {
+    if (!this.detailAnimalId) return;
+    disposePhotos(this.detailBody);
+    this.detailBody.replaceChildren();
+    this.detailSection.hidden = true;
+    this.detailSection.inert = true;
+    this.listSection.hidden = false;
+    this.listSection.inert = false;
+    this.listSection.scrollTop = this.savedScroll;
+    const origin = this.originCard;
+    this.originCard = null;
     this.detailAnimalId = null;
+    if (restoreFocus && origin?.isConnected) origin.focus();
   }
 }

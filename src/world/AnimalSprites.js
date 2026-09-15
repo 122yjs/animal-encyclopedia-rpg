@@ -1,6 +1,47 @@
-// 생성형 픽셀 아틀라스 + 자체 제작 12×12 폴백 — 오버월드 동물 마커·도감 실루엣용
-// 문자: . 투명 / O 외곽선 / B 몸통 / A 포인트 / W 밝은 부분 / E 눈
+/**
+ * 동물 미니 스프라이트와 도감볼 — 생성형 픽셀 아트 아틀라스를 그대로 잘라 쓰는 모듈.
+ *
+ * 원작(170068d)이 쓰던 아틀라스 5장(around·land·freshwater·special 64×64, sea 72×48
+ * 프레임)이 동물 그림의 원본입니다. 아틀라스 안 동물 순서는 행 우선이고, i번째 동물의
+ * 두 포즈는 프레임 2i(포즈 0)·2i+1(포즈 1)입니다. 한 동물당 48×96 캔버스 텍스처 한 장에
+ * 두 포즈를 48×48 프레임 '0'·'1'로 옮겨 담아 오버월드 마커가 통통 튀게 합니다.
+ *
+ * 아틀라스의 자홍 배경은 이미 알파 0으로 처리돼 있지만, 실루엣 테두리에는 배경 키가
+ * 섞인 안티에일리어싱 픽셀이 알파 255로 남아 있습니다(동물당 100~250px). 배경 위에
+ * 그대로 얹으면 자홍 테두리가 보이므로 옮겨 담은 뒤 한 번 더 지웁니다.
+ * 모든 텍스처는 NEAREST 필터라 어떤 크기로 늘려도 각진 픽셀이 유지됩니다.
+ */
 
+/** 미니 스프라이트 한 칸 크기(px) — 아틀라스 프레임을 비율 유지해 담습니다 */
+const MINI_SIZE = 48;
+/** 프레임을 담을 때 사방으로 남기는 여백(px) */
+const MINI_PADDING = 2;
+/** 도감볼 텍스처 key / 크기(px) */
+const BALL_KEY = "dex-ball";
+const BALL_SIZE = 64;
+/**
+ * 도감볼 잉크(외곽선) 반지름 — 64×64 텍스처 안에서 볼이 실제로 그려진 반지름입니다.
+ * 바닥에 닿는 지점을 계산하는 쪽(QuizBattleScene)이 이 값을 scale과 곱해 씁니다.
+ */
+export const BALL_RADIUS = 28;
+
+/** Phaser.Textures.FilterMode.NEAREST */
+const NEAREST = 1;
+
+/**
+ * 배경 키 판정 여유 — 빨강·파랑이 초록보다 이만큼 크면 키가 섞인 픽셀로 봅니다.
+ * 키 자체의 차이는 200이 넘고 테두리 블렌드는 30~200 사이라, 그림을 건드리지
+ * 않으면서 프린지만 걸러내는 값입니다.
+ */
+const KEY_MARGIN = 24;
+
+/** 미니 텍스처에 담는 포즈 — 문자열 프레임 '0'·'1'의 순서입니다 */
+const POSES = [0, 1];
+
+/**
+ * 동물 아틀라스 — key·path·프레임 크기와 그 안의 동물 순서(행 우선).
+ * 순서를 바꾸면 그림이 뒤바뀌므로 원작 순서를 그대로 유지합니다.
+ */
 export const GENERATED_ANIMAL_ATLASES = Object.freeze([
   {
     key: "animal-atlas-around",
@@ -39,13 +80,76 @@ export const GENERATED_ANIMAL_ATLASES = Object.freeze([
   }
 ]);
 
-const GENERATED_FRAME_BY_ANIMAL = new Map(
-  GENERATED_ANIMAL_ATLASES.flatMap((atlas) => atlas.animals.map((animalId, index) => [
-    animalId,
-    { atlas, firstFrame: index * 2 }
-  ]))
+/**
+ * 각 동물 원본 0번 포즈가 바라보는 방향.
+ * 전투에서는 동물이 화면 오른쪽에 서므로 right인 그림만 뒤집어 플레이어 쪽(왼쪽)을 봅니다.
+ */
+export const ANIMAL_SOURCE_FACING = Object.freeze({
+  // 우리 주변 마을
+  "무당벌레": "left",
+  "꿀벌": "left",
+  "달팽이": "left",
+  "박새": "left",
+  "고양이": "front",
+  "개": "left",
+  "공벌레": "left",
+  "거미": "left",
+  // 땅 위 숲
+  "나비": "front",
+  "참새": "right",
+  "딱따구리": "right",
+  "개미": "right",
+  "뱀": "right",
+  "토끼": "right",
+  "노루": "right",
+  "호랑이": "right",
+  // 강과 호수
+  "왜가리": "left",
+  "청둥오리": "left",
+  "수달": "left",
+  "다슬기": "left",
+  "개구리": "left",
+  "붕어": "left",
+  "송사리": "left",
+  "메기": "left",
+  // 바닷가
+  "갈매기": "left",
+  "게": "front",
+  "조개": "front",
+  "소라": "left",
+  "돌고래": "left",
+  "바다거북": "left",
+  "돌돔": "left",
+  "해삼": "front",
+  // 특별한 환경
+  "낙타": "right",
+  "사막여우": "right",
+  "사막 뱀": "right",
+  "도루묵도마뱀": "right",
+  "북극곰": "right",
+  "북극여우": "right",
+  "펭귄": "right",
+  "산양": "right"
+});
+
+/** 화면 오른쪽의 전투 상대가 플레이어 쪽을 보려면 뒤집어야 하는지 */
+export function shouldFlipAnimalTowardLeft(animalId) {
+  return ANIMAL_SOURCE_FACING[animalId] === "right";
+}
+
+const ATLAS_FRAME_BY_ANIMAL = new Map(
+  GENERATED_ANIMAL_ATLASES.flatMap((atlas) =>
+    atlas.animals.map((animalId, index) => [animalId, { atlas, firstFrame: index * 2 }])
+  )
 );
 
+/**
+ * 하늘을 나는(둥실거리는) 동물 — 마커가 뜬 자세로 더 빠르게 깜빡입니다.
+ * 원작 스킨 분류의 새·나비 계열에서 땅에 사는 펭귄을 뺀 목록입니다.
+ */
+const FLYING_ANIMALS = new Set(["박새", "나비", "참새", "딱따구리", "왜가리", "청둥오리", "갈매기"]);
+
+/** 부팅 때 동물 아틀라스를 로드 큐에 넣습니다. */
 export function preloadAnimalAtlases(scene) {
   GENERATED_ANIMAL_ATLASES.forEach((atlas) => {
     scene.load.spritesheet(atlas.key, atlas.path, {
@@ -54,373 +158,162 @@ export function preloadAnimalAtlases(scene) {
     });
   });
 }
-
-const SHAPES = {
-  bird: [
-    "............",
-    "....OOO.....",
-    "...OBEBO....",
-    "..OBBBBO....",
-    "..OBBBBBO...",
-    "...OBBBBAO..",
-    "...OBBBAO...",
-    "....OBBO....",
-    ".....OBO....",
-    "....O..O....",
-    "...OO..OO...",
-    "............"
-  ],
-  butterfly: [
-    "............",
-    "..OO....OO..",
-    ".OBBO..OBBO.",
-    ".OBBBOOBBBO.",
-    "..OBAOOABO..",
-    "...OBAABO...",
-    "...OBAABO...",
-    "..OBAOOABO..",
-    ".OBBBOOBBBO.",
-    ".OBO....OBO.",
-    "............",
-    "............"
-  ],
-  bug: [
-    "............",
-    "...O....O...",
-    "....O..O....",
-    "....OOOO....",
-    "...OBBBBO...",
-    "..OBABBABO..",
-    "..OBBAABBO..",
-    "..OBABBABO..",
-    "...OBBBBO...",
-    "....OOOO....",
-    "............",
-    "............"
-  ],
-  snail: [
-    "............",
-    "............",
-    ".....OOO....",
-    "....OABBO...",
-    "...OBABABO..",
-    "...OBBAABO..",
-    "..OBBABBO...",
-    ".OBBBBBBBO..",
-    ".OBBBBBBBBO.",
-    "..OOOOOOOO..",
-    "............",
-    "............"
-  ],
-  quadSmall: [
-    "............",
-    "..OO...OO...",
-    "..OBO..OBO..",
-    "..OBBBBBBO..",
-    "..OBEBBBBO..",
-    "...OBBBBBOO.",
-    "..OBBBBBBBAO",
-    "..OBBBBBBO..",
-    "...OBO.OBO..",
-    "...OO...OO..",
-    "............",
-    "............"
-  ],
-  quadBig: [
-    "............",
-    "..OOO.......",
-    "..OBBOOOOO..",
-    "..OBBBBBBBO.",
-    "...OBEBBBBBO",
-    "...OBBBBBBO.",
-    "...OBBBBBBO.",
-    "...OBB..BBO.",
-    "...OBB...BBO",
-    "...OOO...OOO",
-    "............",
-    "............"
-  ],
-  snake: [
-    "............",
-    "..OOO.......",
-    ".OBEBO......",
-    ".OBBBO......",
-    "..OBBO.OOO..",
-    "...OBBOBBBO.",
-    "....OBBBBAO.",
-    ".....OOOOBO.",
-    "........OBO.",
-    "......OOBO..",
-    "......OOO...",
-    "............"
-  ],
-  lizard: [
-    "............",
-    "............",
-    "..OOO.......",
-    ".OBEBO......",
-    "..OBBOOOO...",
-    "...OBBBBBO..",
-    "..OBBBBBBAO.",
-    "...OBBBBO...",
-    "..O.O..O.O..",
-    "........OBO.",
-    ".........O..",
-    "............"
-  ],
-  fish: [
-    "............",
-    "............",
-    "....OOOO....",
-    "...OBEBBOO..",
-    "..OBBBBBBAO.",
-    "..OBBBBBBAO.",
-    "...OBBBBOO..",
-    "....OOOO....",
-    "............",
-    "............",
-    "............",
-    "............"
-  ],
-  frog: [
-    "............",
-    "...OO..OO...",
-    "..OBEOOEBO..",
-    "..OBBBBBBO..",
-    "...OBBBBO...",
-    "..OBBBBBBO..",
-    ".OBBOBBOBBO.",
-    ".OBO.OO.OBO.",
-    "..O......O..",
-    "............",
-    "............",
-    "............"
-  ],
-  crab: [
-    "............",
-    "..OO....OO..",
-    ".OAAO..OAAO.",
-    "..OO....OO..",
-    "...OBBBBO...",
-    "..OBEBBEBO..",
-    "..OBBBBBBO..",
-    "...OBBBBO...",
-    "..O.O..O.O..",
-    ".O..O..O..O.",
-    "............",
-    "............"
-  ],
-  shell: [
-    "............",
-    "............",
-    "....OOOO....",
-    "...OABBAO...",
-    "..OBABABAO..",
-    "..OABABABO..",
-    ".OBBBBBBBBO.",
-    "..OOOOOOOO..",
-    "............",
-    "............",
-    "............",
-    "............"
-  ],
-  blob: [
-    "............",
-    "............",
-    "...OOOOO....",
-    "..OBBBBBO...",
-    ".OBEBBBBBO..",
-    ".OBBBBBBBAO.",
-    "..OBBBBBBO..",
-    "...OOOOOO...",
-    "............",
-    "............",
-    "............",
-    "............"
-  ],
-  dolphin: [
-    "............",
-    "............",
-    ".....OO.....",
-    "....OBBO....",
-    "...OOBBBO...",
-    "..OBEBBBBOO.",
-    ".OBBBBBBBBAO",
-    "..OWWBBBOO..",
-    "....OOOO....",
-    "............",
-    "............",
-    "............"
-  ],
-  penguin: [
-    "............",
-    "....OOO.....",
-    "...OBEBO....",
-    "...OBBBO....",
-    "..OBWWWBO...",
-    "..OBWWWBO...",
-    "..OBWWWBO...",
-    "..OBWWWBO...",
-    "...OWWWO....",
-    "...OA.AO....",
-    "....O.O.....",
-    "............"
-  ],
-  turtle: [
-    "............",
-    "............",
-    "....OOOO....",
-    "...OABBAO...",
-    "..OABABABO..",
-    ".OOBBBBBBO..",
-    "OBEOBBBBOO..",
-    ".OO.OOOO....",
-    "....O..O....",
-    "............",
-    "............",
-    "............"
-  ]
-};
-
-/** 동물별 스킨: 모양 + 색 (B 몸통, A 포인트, W 밝음) */
-export const ANIMAL_SKINS = {
-  // 우리 주변 마을
-  "무당벌레": { shape: "bug", B: "#d84a3a", A: "#2d1b0e" },
-  "꿀벌": { shape: "bug", B: "#e8c23a", A: "#2d1b0e" },
-  "달팽이": { shape: "snail", B: "#c9985a", A: "#8a5a3a" },
-  "박새": { shape: "bird", B: "#e8d84a", A: "#3a3a3a" },
-  "고양이": { shape: "quadSmall", B: "#e8a86a", A: "#c9855a" },
-  "개": { shape: "quadSmall", B: "#d9c9a8", A: "#b8a888" },
-  "공벌레": { shape: "bug", B: "#8a8a9a", A: "#5a5a6a" },
-  "거미": { shape: "bug", B: "#4a3a5a", A: "#2d2438" },
-  // 땅 위 숲
-  "나비": { shape: "butterfly", B: "#e8a838", A: "#d84a3a" },
-  "참새": { shape: "bird", B: "#a8794a", A: "#6b4226" },
-  "딱따구리": { shape: "bird", B: "#4a4a4a", A: "#d84a3a" },
-  "개미": { shape: "bug", B: "#6b3a2a", A: "#4a2a1a" },
-  "뱀": { shape: "snake", B: "#6a9a4a", A: "#4a7a3a" },
-  "토끼": { shape: "quadSmall", B: "#e8e0d0", A: "#c9b8a8" },
-  "노루": { shape: "quadBig", B: "#b8865a", A: "#8a5a3a" },
-  "호랑이": { shape: "quadBig", B: "#e8973a", A: "#2d1b0e" },
-  // 강과 호수
-  "왜가리": { shape: "bird", B: "#ccd4dc", A: "#8a9aa8" },
-  "청둥오리": { shape: "bird", B: "#4a7a5a", A: "#e8e0c0" },
-  "수달": { shape: "quadSmall", B: "#8a5a3a", A: "#6b4226" },
-  "다슬기": { shape: "snail", B: "#7a6a5a", A: "#4a3a2a" },
-  "개구리": { shape: "frog", B: "#6aaa4a", A: "#4a8a3a" },
-  "붕어": { shape: "fish", B: "#c9a04a", A: "#a8803a" },
-  "송사리": { shape: "fish", B: "#b8c9d8", A: "#8aa8c0" },
-  "메기": { shape: "fish", B: "#5a6a7a", A: "#3a4a5a" },
-  // 바닷가
-  "갈매기": { shape: "bird", B: "#eeeeee", A: "#e8a838" },
-  "게": { shape: "crab", B: "#e86a4a", A: "#c94a2a" },
-  "조개": { shape: "shell", B: "#d8c9b8", A: "#a89078" },
-  "소라": { shape: "snail", B: "#c9906a", A: "#8a5a3a" },
-  "돌고래": { shape: "dolphin", B: "#7a9ab8", A: "#5a7a98", W: "#d8e4ec" },
-  "바다거북": { shape: "turtle", B: "#5a8a6a", A: "#8a6a4a" },
-  "돌돔": { shape: "fish", B: "#b8bcc9", A: "#3a3a3a" },
-  "해삼": { shape: "blob", B: "#4a3a2a", A: "#6b5a3a" },
-  // 특별한 환경
-  "낙타": { shape: "quadBig", B: "#d8b06a", A: "#b8905a" },
-  "사막여우": { shape: "quadSmall", B: "#e8c99a", A: "#c9a87a" },
-  "사막 뱀": { shape: "snake", B: "#d8b98a", A: "#b8905a" },
-  "도루묵도마뱀": { shape: "lizard", B: "#d8c07a", A: "#b8a05a" },
-  "북극곰": { shape: "quadBig", B: "#eef2f2", A: "#d4dce0" },
-  "북극여우": { shape: "quadSmall", B: "#eef2f6", A: "#c9d4dc" },
-  "펭귄": { shape: "penguin", B: "#2d3a4a", A: "#e8a838", W: "#eef2f6" },
-  "산양": { shape: "quadBig", B: "#d8d0c0", A: "#b8b0a0" }
-};
-
-const DEFAULTS = {
-  O: "#3a2a18",
-  E: "#26180c",
-  W: "#fff8e7"
-};
-
-function colorFor(ch, skin) {
-  switch (ch) {
-    case "O": return skin.O || DEFAULTS.O;
-    case "B": return skin.B;
-    case "A": return skin.A || skin.B;
-    case "W": return skin.W || DEFAULTS.W;
-    case "E": return skin.E || DEFAULTS.E;
-    default: return null;
-  }
+/** 아틀라스 로드 뒤, 도감·전투가 프레임을 조회하기 전에 한 번 만듭니다. */
+export function createAnimalTextures(scene) {
+  for (const animalId of ATLAS_FRAME_BY_ANIMAL.keys()) ensureAnimalTexture(scene, animalId);
 }
 
-function paintShape(ctx, shape, skin, size) {
-  for (let y = 0; y < size; y += 1) {
-    const row = shape[y] || "";
-    for (let x = 0; x < size; x += 1) {
-      const color = colorFor(row[x], skin);
-      if (!color) continue;
-      ctx.fillStyle = color;
-      ctx.fillRect(x, y, 1, 1);
+/**
+ * 생성 배경에 쓰인 자홍 키가 섞인 픽셀인지 — 키(자홍)는 초록이 가장 낮은 색이라,
+ * 빨강·파랑이 초록보다 함께 높으면 배경 키가 섞인 픽셀입니다. 아틀라스 내부의
+ * 동물 그림에는 이 조건을 넘는 픽셀이 사실상 없어(아틀라스당 한 자리 수) 테두리
+ * 프린지만 지웁니다.
+ */
+function isKeyPixel(red, green, blue) {
+  return red - green > KEY_MARGIN && blue - green > KEY_MARGIN;
+}
+
+/**
+ * 캔버스 테두리에 남은 자홍 키 픽셀을 정리합니다.
+ * 투명 픽셀은 RGB까지 비워 어떤 필터로 샘플링해도 자홍이 새지 않게 하고,
+ * 알파가 남은 키 블렌드 픽셀은 옆의 정상 픽셀 색을 옮겨 칠해 자홍을 없앱니다.
+ * (지워 버리면 다리·더듬이 같은 1px 살이 끊기므로 색만 바꿉니다.)
+ */
+function cleanKeyFringe(ctx, width, height) {
+  const image = ctx.getImageData(0, 0, width, height);
+  const { data } = image;
+  const keyed = new Uint8Array(width * height);
+  const pending = new Uint8Array(width * height);
+  let dirty = false;
+
+  for (let i = 0, p = 0; i < data.length; i += 4, p += 1) {
+    if (data[i + 3] === 0) {
+      if (data[i] !== 0 || data[i + 1] !== 0 || data[i + 2] !== 0) {
+        data[i] = 0;
+        data[i + 1] = 0;
+        data[i + 2] = 0;
+        dirty = true;
+      }
+    } else if (isKeyPixel(data[i], data[i + 1], data[i + 2])) {
+      keyed[p] = 1;
+      pending[p] = 1;
     }
   }
+
+  // 정상 픽셀 색을 최대 3px까지 안쪽으로 전파해 테두리 프린지를 덮습니다.
+  for (let pass = 0; pass < 3; pass += 1) {
+    let changed = false;
+    for (let p = 0; p < pending.length; p += 1) {
+      if (!pending[p]) continue;
+      const x = p % width;
+      const y = (p - x) / width;
+      for (let ny = Math.max(0, y - 1); ny <= Math.min(height - 1, y + 1); ny += 1) {
+        for (let nx = Math.max(0, x - 1); nx <= Math.min(width - 1, x + 1); nx += 1) {
+          const q = ny * width + nx;
+          const j = q * 4;
+          if (pending[q] || data[j + 3] === 0) continue;
+          data[p * 4] = data[j];
+          data[p * 4 + 1] = data[j + 1];
+          data[p * 4 + 2] = data[j + 2];
+          pending[p] = 0;
+          nx = width;
+          ny = height;
+        }
+      }
+      if (!pending[p]) {
+        changed = true;
+        dirty = true;
+      }
+    }
+    if (!changed) break;
+  }
+
+  // 그림에 닿지 못한 키 픽셀은 배경 잔여물이라 지웁니다. 색을 옮겨 칠한 픽셀도
+  // 상하좌우 어디에도 그림이 없으면 떨어진 점으로 남으므로 함께 지웁니다.
+  for (let p = 0; p < pending.length; p += 1) {
+    if (!keyed[p]) continue;
+    const x = p % width;
+    const y = (p - x) / width;
+    const attached = pending[p] === 0 && (
+      (x > 0 && data[(p - 1) * 4 + 3] > 0) ||
+      (x < width - 1 && data[(p + 1) * 4 + 3] > 0) ||
+      (y > 0 && data[(p - width) * 4 + 3] > 0) ||
+      (y < height - 1 && data[(p + width) * 4 + 3] > 0)
+    );
+    if (attached) continue;
+    data[p * 4] = 0;
+    data[p * 4 + 1] = 0;
+    data[p * 4 + 2] = 0;
+    data[p * 4 + 3] = 0;
+    dirty = true;
+  }
+
+  if (dirty) ctx.putImageData(image, 0, 0);
 }
 
-function paintGeneratedFrame(scene, canvas, animalId, pose) {
-  const generated = GENERATED_FRAME_BY_ANIMAL.get(animalId);
-  if (!generated || !scene.textures.exists(generated.atlas.key)) return false;
-  const frame = scene.textures.getFrame(generated.atlas.key, generated.firstFrame + pose);
-  if (!frame?.source?.image) return false;
-
-  const size = 48;
-  const padding = 2;
-  const scale = Math.min((size - padding * 2) / frame.cutWidth, (size - padding * 2) / frame.cutHeight);
-  const drawWidth = Math.round(frame.cutWidth * scale);
-  const drawHeight = Math.round(frame.cutHeight * scale);
-  const drawX = Math.round((size - drawWidth) / 2);
-  const drawY = Math.round((size - drawHeight) / 2);
-  const context = canvas.getContext();
-  context.imageSmoothingEnabled = false;
-  context.drawImage(
-    frame.source.image,
-    frame.cutX,
-    frame.cutY,
-    frame.cutWidth,
-    frame.cutHeight,
-    drawX,
-    drawY,
-    drawWidth,
-    drawHeight
+/** 아틀라스 프레임 하나를 48×48 칸 안에 비율 그대로 담습니다. */
+function drawAtlasFrame(ctx, image, frame, cellTop) {
+  const span = MINI_SIZE - MINI_PADDING * 2;
+  const scale = Math.min(span / frame.cutWidth, span / frame.cutHeight);
+  const width = Math.max(1, Math.round(frame.cutWidth * scale));
+  const height = Math.max(1, Math.round(frame.cutHeight * scale));
+  const x = Math.round((MINI_SIZE - width) / 2);
+  const y = cellTop + Math.round((MINI_SIZE - height) / 2);
+  ctx.drawImage(
+    image,
+    frame.cutX, frame.cutY, frame.cutWidth, frame.cutHeight,
+    x, y, width, height
   );
-  return true;
 }
 
-/** 동물 미니 스프라이트 텍스처를 (없으면) 만들고 key를 돌려줍니다 */
-export function ensureAnimalTexture(scene, animalId, pose = 0) {
-  const framePose = pose === 1 ? 1 : 0;
-  const key = `mini-${animalId}-${framePose}`;
-  if (scene.textures.exists(key)) return key;
-  const skin = ANIMAL_SKINS[animalId];
+/** 동물 미니 텍스처(두 포즈)를 (없으면) 만들고 key를 돌려줍니다 */
+function ensureAnimalTexture(scene, animalId) {
+  const entry = ATLAS_FRAME_BY_ANIMAL.get(animalId);
+  if (!entry) return null;
 
-  const atlasKey = GENERATED_FRAME_BY_ANIMAL.get(animalId)?.atlas.key;
-  const generated = atlasKey && scene.textures.exists(atlasKey);
-  const size = generated ? 48 : 12;
-  const canvas = scene.textures.createCanvas(key, size, size);
-  if (!paintGeneratedFrame(scene, canvas, animalId, framePose)) {
-    if (!skin || !SHAPES[skin.shape]) {
-      scene.textures.remove(key);
-      return null;
-    }
-    paintShape(canvas.getContext(), SHAPES[skin.shape], skin, 12);
-  }
+  const key = `mini-${animalId}`;
+  if (scene.textures.exists(key)) return key;
+
+  const atlas = scene.textures.get(entry.atlas.key);
+  const image = atlas ? atlas.getSourceImage() : null;
+  const frames = atlas ? POSES.map((pose) => atlas.get(entry.firstFrame + pose)) : [];
+  if (!image || frames.length !== POSES.length || frames.some((frame) => !frame)) return null;
+
+  const canvas = scene.textures.createCanvas(key, MINI_SIZE, MINI_SIZE * POSES.length);
+  if (!canvas) return null;
+
+  const ctx = canvas.getContext();
+  ctx.imageSmoothingEnabled = false;
+  frames.forEach((frame, index) => drawAtlasFrame(ctx, image, frame, index * MINI_SIZE));
+  cleanKeyFringe(ctx, MINI_SIZE, MINI_SIZE * POSES.length);
+  frames.forEach((frame, index) => canvas.add(String(index), 0, 0, index * MINI_SIZE, MINI_SIZE, MINI_SIZE));
   canvas.refresh();
+  canvas.setFilter(NEAREST);
   return key;
+}
+
+/**
+ * 동물 그림 위치 — { key, frame }.
+ * 아틀라스에 없는 id는 null(다른 동물로 대신 채우지 않습니다).
+ */
+export function getAnimalFrame(animalId, pose = 0) {
+  if (!ATLAS_FRAME_BY_ANIMAL.has(animalId)) return null;
+  return { key: `mini-${animalId}`, frame: pose === 1 ? "1" : "0" };
 }
 
 /** 오버월드 마커용 두 프레임 애니메이션 key */
 export function ensureAnimalAnimation(scene, animalId) {
+  if (!ATLAS_FRAME_BY_ANIMAL.has(animalId)) return null;
+
   const key = `animal-marker-${animalId}`;
   if (scene.anims.exists(key)) return key;
-  const first = ensureAnimalTexture(scene, animalId, 0);
-  const second = ensureAnimalTexture(scene, animalId, 1);
-  if (!first || !second) return null;
+
+  const textureKey = ensureAnimalTexture(scene, animalId);
+  if (!textureKey) return null;
+
   scene.anims.create({
     key,
-    frames: [{ key: first }, { key: second }],
+    frames: [{ key: textureKey, frame: "0" }, { key: textureKey, frame: "1" }],
     frameRate: isFlying(animalId) ? 4 : 2,
     repeat: -1,
     yoyo: true
@@ -428,38 +321,52 @@ export function ensureAnimalAnimation(scene, animalId) {
   return key;
 }
 
+/** 하늘을 나는(둥실거리는) 동물인지 — 마커 연출 구분용 */
+export function isFlying(animalId) {
+  return FLYING_ANIMALS.has(animalId);
+}
+
 // ─── 도감볼 (포획용 볼) ─────────────────────────────────────
 
-const BALL_SHAPE = [
-  "....OOOO....",
-  "..OOBBBBOO..",
-  ".OBBBBBBBBO.",
-  ".OBBBWBBBBO.",
-  "OBBBBBBBBBBO",
-  "OOOOOOOOOOOO",
-  "OAAAAOOAAAAO",
-  ".OAAAOOAAAO.",
-  ".OAAAAAAAAO.",
-  "..OOAAAAOO..",
-  "....OOOO....",
-  "............"
-];
+const BALL_INK = "#3a2a18";
+const BALL_TOP = "#e8973a";
+const BALL_BOTTOM = "#fff8e7";
+const BALL_SHINE = "#ffd98a";
 
-const BALL_SKIN = { B: "#e8973a", A: "#fff8e7", W: "#ffd98a", O: "#3a2a18" };
+function paintBall(ctx) {
+  const c = (BALL_SIZE - 1) / 2;
+  const radius = BALL_RADIUS;
+  const shell = radius - 1.7;
+  const highlight = { x: -9.5, y: -11.5 };
+  const shine = 6.4;
+  for (let y = 0; y < BALL_SIZE; y += 1) {
+    for (let x = 0; x < BALL_SIZE; x += 1) {
+      const dx = x - c;
+      const dy = y - c;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist > radius) continue;
+
+      let color = BALL_INK;
+      if (dist <= shell) {
+        color = dy < -1 ? BALL_TOP : BALL_BOTTOM;
+        if (Math.sqrt((dx - highlight.x) ** 2 + (dy - highlight.y) ** 2) <= shine) color = BALL_SHINE;
+        if (dy >= -1 && dy < 2.4) color = BALL_INK;
+        if (dist <= 8.6) color = dist <= 5.6 ? BALL_SHINE : BALL_INK;
+      }
+
+      ctx.fillStyle = color;
+      ctx.fillRect(x, y, 1, 1);
+    }
+  }
+}
 
 /** 도감볼 텍스처 key */
 export function ensureBallTexture(scene) {
-  const key = "dex-ball";
-  if (scene.textures.exists(key)) return key;
-  const size = 12;
-  const canvas = scene.textures.createCanvas(key, size, size);
-  paintShape(canvas.getContext(), BALL_SHAPE, BALL_SKIN, size);
+  if (scene.textures.exists(BALL_KEY)) return BALL_KEY;
+  const canvas = scene.textures.createCanvas(BALL_KEY, BALL_SIZE, BALL_SIZE);
+  if (!canvas) return BALL_KEY;
+  paintBall(canvas.getContext());
   canvas.refresh();
-  return key;
-}
-
-/** 하늘을 나는(둥실거리는) 동물인지 — 마커 연출 구분용 */
-export function isFlying(animalId) {
-  const skin = ANIMAL_SKINS[animalId];
-  return skin ? ["bird", "butterfly"].includes(skin.shape) && animalId !== "펭귄" : false;
+  canvas.setFilter(NEAREST);
+  return BALL_KEY;
 }

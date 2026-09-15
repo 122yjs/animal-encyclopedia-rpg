@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>사진 출처 모음 | 동물도감 탐험대</title>
+  <link rel="icon" href="data:,">
+  <style>
+    body { padding: 24px; background: #f4f0de; color: #23342f; font: 16px/1.65 "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; }
+    main { max-width: 1040px; margin: 0 auto; background: rgba(255, 252, 238, 0.95); border: 2px solid rgba(110, 70, 33, 0.18); border-radius: 24px; padding: 24px; box-shadow: 0 18px 40px rgba(45, 27, 14, 0.14); }
+    h1 { margin-top: 0; color: #0f6f68; }
+    .credits-note { font-weight: 800; color: #5d4a38; line-height: 1.7; }
+    .credits-table-wrap { overflow-x: auto; margin-top: 20px; }
+    table { width: 100%; border-collapse: collapse; min-width: 760px; }
+    th, td { padding: 12px; border-bottom: 1px solid rgba(110, 70, 33, 0.18); text-align: left; vertical-align: top; }
+    th { background: #e7f5ef; color: #0f6f68; font-weight: 900; }
+    td { background: rgba(255, 255, 255, 0.5); }
+    a { color: #0f6f68; font-weight: 900; }
+    .back-link { display: inline-flex; min-height: 48px; align-items: center; margin-top: 20px; padding: 10px 14px; border: 2px solid #0f6f68; border-radius: 999px; text-decoration: none; }
+    a:focus-visible { outline: 3px solid #183b3c; outline-offset: 3px; }
+  </style>
+</head>
+
+<body>
+  <main>
+    <p class="section-kicker">공개 배포 자료</p>
+    <h1>사진·에셋 출처 모음</h1>
+    <p class="credits-note"><strong>Assets from Sprout Lands by Cup Nooble</strong> — 흰색 긴 귀 플레이어와 수영 자세, 타일·소품·닭·소는 Sprout Lands Basic pack을 사용합니다. 포획 축하는 원본 Teemo 이모트 시트의 (0,192)·(32,192) 위치에 있는 32×32 두 프레임을, 실패 동작은 같은 시트의 (0,352)·(32,352)·(0,384) 위치에 있는 32×32 세 프레임을 잘라 재사용했습니다. UI는 원본 <code>Setting menu.png</code>의 빈 오른쪽 패널과 <code>Square Buttons 26x19.png</code>의 크림색 칸을 자른 <code>ui-frame-panel.png</code>·<code>ui-button-block.png</code>를 사용합니다. 완성 보상은 <code>Special Icons.png</code>의 (0,32) 별과 <code>All Icons.png</code>의 (224,16) 왕관을 각각 16×16으로 자른 <code>reward-badge-star.png</code>·<code>reward-master-crown.png</code>를 사용합니다. 비상업(학교) 프로젝트용이며, 에셋 팩 자체를 재배포하지 않습니다. <a href="./assets/sprout-lands/sprites/read_me.txt">라이선스 원문</a>.</p>
+    <p class="credits-note"><strong>동물 그림</strong> — 40종 각각 두 자세를 원작 아틀라스 5장(<code>public/assets/generated/animals/</code>)에서 그대로 잘라 씁니다. 도감볼과 머리 위 표시는 프로젝트 코드로 그립니다. 학습용 실제 사진을 대신하지 않습니다. 게임 그림은 최근접 보간, 실제 사진은 원본 비율과 부드러운 표시를 사용합니다.</p>
+    <p class="credits-note"><strong>고밀도 픽셀아트 배경·지도 (G6)</strong> — OpenAI의 내장 <code>image_gen.imagegen</code> 이미지 도구로 생성한 뒤 lossless WebP로 최적화한 프로젝트 원본입니다. 도구가 정확한 하위 이미지 모델 식별자를 제공하지 않아 모델 값은 <code>null</code>이며, GPT Image 2.5 등 확인되지 않은 모델명은 주장하지 않습니다. 시작 화면: <a href="./assets/detailed-pixel/title-park.webp">공원</a> · 여행 지도: <a href="./assets/detailed-pixel/world-map.webp">월드맵</a> · 도감 숲: <a href="./assets/detailed-pixel/dex-forest.webp">숲</a> · 지역 지도: <a href="./assets/detailed-pixel/overworld-around.webp">마을</a> · <a href="./assets/detailed-pixel/overworld-land.webp">숲</a> · <a href="./assets/detailed-pixel/overworld-freshwater.webp">강·호수</a> · <a href="./assets/detailed-pixel/overworld-sea.webp">바다</a> · <a href="./assets/detailed-pixel/overworld-special.webp">사막·고산·극지</a> · 전투 배경: <a href="./assets/detailed-pixel/battle-around.webp">마을</a> · <a href="./assets/detailed-pixel/battle-land.webp">숲</a> · <a href="./assets/detailed-pixel/battle-freshwater.webp">강가</a> · <a href="./assets/detailed-pixel/battle-sea.webp">바다</a> · <a href="./assets/detailed-pixel/battle-desert.webp">사막</a> · <a href="./assets/detailed-pixel/battle-alpine.webp">고산</a> · <a href="./assets/detailed-pixel/battle-polar.webp">극지</a>. 동물·글·경로·버튼은 게임에서 별도로 표시합니다. 생성 원본과 provenance는 <code>artifacts/visual-patch/g6/source/sprout-soft/</code>에 보관하지만 <code>artifacts/</code>가 Git ignore 대상이므로 공개 배포 파일에는 포함되지 않습니다.</p>
+    <p class="credits-note">이전 G5 픽셀아트와 G2–G4 회화풍 그림은 현재 런타임에서 제외했습니다. 이전 배포본은 <code>artifacts/visual-patch/g5-preview-dist/</code>와 <code>artifacts/visual-patch/g4-preview-dist/</code>에 보존합니다.</p>
+    <p class="credits-note">동물 사진은 위키백과와 위키미디어 공용의 공개 라이선스 자료를 우선 사용합니다. 각 사진의 정확한 저작자/라이선스 정보는 아래 원본 페이지에서 확인할 수 있어요. 외부 페이지는 새 창에서 열립니다.</p>
+    <div class="credits-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>동물</th>
+            <th>출처 페이지</th>
+            <th>이미지 주소</th>
+            <th>저작자/라이선스</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>무당벌레</td>
+            <td><a href="https://ko.wikipedia.org/wiki/%EB%AC%B4%EB%8B%B9%EB%B2%8C%EB%A0%88" target="_blank" rel="noopener noreferrer">무당벌레</a></td>
+            <td><a href="https://upload.wikimedia.org/wikipedia/commons/thumb/3/39/Asian_lady_beetle-%28Harmonia-axyridis%29.jpg/330px-Asian_lady_beetle-%28Harmonia-axyridis%29.jpg" target="_blank" rel="noopener noreferrer">이미지 파일</a></td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+          <tr>
+            <td>달팽이</td>
+            <td><a href="https://ko.wikipedia.org/wiki/%EB%8B%AC%ED%8C%BD%EC%9D%B4" target="_blank" rel="noopener noreferrer">달팽이</a></td>
+            <td><a href="https://upload.wikimedia.org/wikipedia/commons/thumb/6/6d/Common_snail.jpg/330px-Common_snail.jpg" target="_blank" rel="noopener noreferrer">이미지 파일</a></td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+          <tr>
+            <td>고양이</td>
+            <td><a href="https://ko.wikipedia.org/wiki/%EA%B3%A0%EC%96%91%EC%9D%B4" target="_blank" rel="noopener noreferrer">고양이</a></td>
+            <td><a href="https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/960px-Cat03.jpg" target="_blank" rel="noopener noreferrer">이미지 파일</a></td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+          <tr>
+            <td>거미</td>
+            <td><a href="https://ko.wikipedia.org/wiki/%EA%B1%B0%EB%AF%B8" target="_blank" rel="noopener noreferrer">거미</a></td>
+            <td><a href="https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/Araneus_diadematus_%28Clerck%2C_1757%29.JPG/960px-Araneus_diadematus_%28Clerck%2C_1757%29.JPG" target="_blank" rel="noopener noreferrer">이미지 파일</a></td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+          <tr>
+            <td>박새</td>
+            <td><a href="https://en.wikipedia.org/wiki/Great_tit" target="_blank" rel="noopener noreferrer">Great_tit</a></td>
+            <td><a href="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/Great_tit_%28Parus_major%29%2C_Parc_du_Rouge-Cloitre%2C_For%C3%AAt_de_Soignes%2C_Brussels_%2826194636951%29.jpg/330px-Great_tit_%28Parus_major%29%2C_Parc_du_Rouge-Cloitre%2C_For%C3%AAt_de_Soignes%2C_Brussels_%2826194636951%29.jpg" target="_blank" rel="noopener noreferrer">이미지 파일</a></td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+          <tr>
+            <td>꿀벌</td>
+            <td><a href="https://ko.wikipedia.org/wiki/%EA%BF%80%EB%B2%8C" target="_blank" rel="noopener noreferrer">꿀벌</a></td>
+            <td><a href="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Bee_on_Geraldton_Wax_Flower.JPG/330px-Bee_on_Geraldton_Wax_Flower.JPG" target="_blank" rel="noopener noreferrer">이미지 파일</a></td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+          <tr>
+            <td>공벌레</td>
+            <td><a href="https://ko.wikipedia.org/wiki/%EA%B3%B5%EB%B2%8C%EB%A0%88" target="_blank" rel="noopener noreferrer">공벌레</a></td>
+            <td><a href="https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Armadillidium_vulgare_001.jpg/330px-Armadillidium_vulgare_001.jpg" target="_blank" rel="noopener noreferrer">이미지 파일</a></td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+          <tr>
+            <td>개</td>
+            <td><a href="https://ko.wikipedia.org/wiki/%EA%B0%9C" target="_blank" rel="noopener noreferrer">개</a></td>
+            <td><a href="https://upload.wikimedia.org/wikipedia/commons/thumb/6/6e/Golde33443.jpg/330px-Golde33443.jpg" target="_blank" rel="noopener noreferrer">이미지 파일</a></td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+          <tr>
+            <td>나비</td>
+            <td><a href="https://ko.wikipedia.org/wiki/%EB%82%98%EB%B9%84" target="_blank" rel="noopener noreferrer">나비</a></td>
+            <td><a href="https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Butterfly_macro_shot.jpg/330px-Butterfly_macro_shot.jpg" target="_blank" rel="noopener noreferrer">이미지 파일</a></td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+          <tr>
+            <td>참새</td>
+            <td><a href="https://ko.wikipedia.org/wiki/%EC%B0%B8%EC%83%88" target="_blank" rel="noopener noreferrer">참새</a></td>
+            <td><a href="https://upload.wikimedia.org/wikipedia/commons/thumb/9/98/Tree_Sparrow_August_2007_Osaka_Japan.jpg/330px-Tree_Sparrow_August_2007_Osaka_Japan.jpg" target="_blank" rel="noopener noreferrer">이미지 파일</a></td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+          <tr>
+            <td>토끼</td>
+            <td><a href="https://ko.wikipedia.org/wiki/%ED%86%A0%EB%81%BC" target="_blank" rel="noopener noreferrer">토끼</a></td>
+            <td><a href="https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/Arctic_Hare.jpg/330px-Arctic_Hare.jpg" target="_blank" rel="noopener noreferrer">이미지 파일</a></td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+          <tr>
+            <td>호랑이</td>
+            <td><a href="https://ko.wikipedia.org/wiki/%ED%98%B8%EB%9E%91%EC%9D%B4" target="_blank" rel="noopener noreferrer">호랑이</a></td>
+            <td><a href="https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Siberian_Tiger_by_Malene_Th.jpg/330px-Siberian_Tiger_by_Malene_Th.jpg" target="_blank" rel="noopener noreferrer">이미지 파일</a></td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+          <tr>
+            <td>붕어</td>
+            <td><a href="https://ko.wikipedia.org/wiki/%EB%B6%95%EC%96%B4" target="_blank" rel="noopener noreferrer">붕어</a></td>
+            <td><a href="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/CarassiusCarassius8.JPG/330px-CarassiusCarassius8.JPG" target="_blank" rel="noopener noreferrer">이미지 파일</a></td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+          <tr>
+            <td>지렁이</td>
+            <td><a href="https://ko.wikipedia.org/wiki/%EC%A7%80%EB%A0%81%EC%9D%B4" target="_blank" rel="noopener noreferrer">지렁이</a></td>
+            <td><a href="https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/Regenwurm1.jpg/330px-Regenwurm1.jpg" target="_blank" rel="noopener noreferrer">이미지 파일</a></td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+          <tr>
+            <td>뱀</td>
+            <td><a href="https://ko.wikipedia.org/wiki/%EB%B1%80" target="_blank" rel="noopener noreferrer">뱀</a></td>
+            <td><a href="https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Grass_snake_%28Natrix_natrix%29_Pieniny.jpg/960px-Grass_snake_%28Natrix_natrix%29_Pieniny.jpg" target="_blank" rel="noopener noreferrer">이미지 파일</a></td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+          <tr>
+            <td>개미</td>
+            <td><a href="https://ko.wikipedia.org/wiki/%EA%B0%9C%EB%AF%B8" target="_blank" rel="noopener noreferrer">개미</a></td>
+            <td><a href="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a6/Meat_eater_ant_feeding_on_honey02.jpg/330px-Meat_eater_ant_feeding_on_honey02.jpg" target="_blank" rel="noopener noreferrer">이미지 파일</a></td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+          <tr>
+            <td>다람쥐</td>
+            <td><a href="https://ko.wikipedia.org/wiki/%EB%8B%A4%EB%9E%8C%EC%A5%90" target="_blank" rel="noopener noreferrer">다람쥐</a></td>
+            <td>위키 페이지 이미지</td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+          <tr>
+            <td>고라니</td>
+            <td><a href="https://ko.wikipedia.org/wiki/%EA%B3%A0%EB%9D%BC%EB%8B%88" target="_blank" rel="noopener noreferrer">고라니</a></td>
+            <td>위키 페이지 이미지</td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+          <tr>
+            <td>두더지</td>
+            <td><a href="https://en.wikipedia.org/wiki/Mole_(animal)" target="_blank" rel="noopener noreferrer">Mole_(animal)</a></td>
+            <td>위키 페이지 이미지</td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+          <tr>
+            <td>부엉이</td>
+            <td><a href="https://en.wikipedia.org/wiki/Owl" target="_blank" rel="noopener noreferrer">Owl</a></td>
+            <td>위키 페이지 이미지</td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+          <tr>
+            <td>노루</td>
+            <td><a href="https://ko.wikipedia.org/wiki/%EB%85%B8%EB%A3%A8" target="_blank" rel="noopener noreferrer">노루</a></td>
+            <td><a href="https://upload.wikimedia.org/wikipedia/commons/thumb/e/ed/Siberian_roe_deer.jpg/330px-Siberian_roe_deer.jpg" target="_blank" rel="noopener noreferrer">이미지 파일</a></td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+          <tr>
+            <td>너구리</td>
+            <td><a href="https://ko.wikipedia.org/wiki/%EB%84%88%EA%B5%AC%EB%A6%AC" target="_blank" rel="noopener noreferrer">너구리</a></td>
+            <td><a href="https://upload.wikimedia.org/wikipedia/commons/thumb/9/92/Nyctereutes_procyonoides_16072008.jpg/330px-Nyctereutes_procyonoides_16072008.jpg" target="_blank" rel="noopener noreferrer">이미지 파일</a></td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+          <tr>
+            <td>딱따구리</td>
+            <td><a href="https://ko.wikipedia.org/wiki/%EB%94%B1%EB%94%B0%EA%B5%AC%EB%A6%AC" target="_blank" rel="noopener noreferrer">딱따구리</a></td>
+            <td><a href="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Greater_Spotted_Woodpecker_%2841554059345%29.jpg/330px-Greater_Spotted_Woodpecker_%2841554059345%29.jpg" target="_blank" rel="noopener noreferrer">이미지 파일</a></td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+          <tr>
+            <td>낙타</td>
+            <td><a href="https://ko.wikipedia.org/wiki/%EB%82%99%ED%83%80" target="_blank" rel="noopener noreferrer">낙타</a></td>
+            <td><a href="https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/07._Camel_Profile%2C_near_Silverton%2C_NSW%2C_07.07.2007.jpg/330px-07._Camel_Profile%2C_near_Silverton%2C_NSW%2C_07.07.2007.jpg" target="_blank" rel="noopener noreferrer">이미지 파일</a></td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+          <tr>
+            <td>도루묵도마뱀</td>
+            <td><a href="https://ko.wikipedia.org/wiki/%EB%8F%84%EB%A3%A8%EB%AC%B5%EB%8F%84%EB%A7%88%EB%B1%80" target="_blank" rel="noopener noreferrer">도루묵도마뱀</a></td>
+            <td><a href="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2d/Apothekerskink01.jpg/330px-Apothekerskink01.jpg" target="_blank" rel="noopener noreferrer">이미지 파일</a></td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+          <tr>
+            <td>사막여우</td>
+            <td><a href="https://en.wikipedia.org/wiki/Fennec_fox" target="_blank" rel="noopener noreferrer">Fennec_fox</a></td>
+            <td>위키 페이지 이미지</td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+          <tr>
+            <td>사막 뱀</td>
+            <td><a href="https://en.wikipedia.org/wiki/Crotalus_cerastes" target="_blank" rel="noopener noreferrer">Crotalus_cerastes</a></td>
+            <td>위키 페이지 이미지</td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+          <tr>
+            <td>사막 딱정벌레</td>
+            <td><a href="https://en.wikipedia.org/wiki/Stenocara_gracilipes" target="_blank" rel="noopener noreferrer">Stenocara_gracilipes</a></td>
+            <td>위키 페이지 이미지</td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+          <tr>
+            <td>북극곰</td>
+            <td><a href="https://ko.wikipedia.org/wiki/%EB%B6%81%EA%B7%B9%EA%B3%B0" target="_blank" rel="noopener noreferrer">북극곰</a></td>
+            <td><a href="https://upload.wikimedia.org/wikipedia/commons/thumb/9/9a/Polarb%C3%A4r_12_2004-11-17.jpg/330px-Polarb%C3%A4r_12_2004-11-17.jpg" target="_blank" rel="noopener noreferrer">이미지 파일</a></td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+          <tr>
+            <td>북극여우</td>
+            <td><a href="https://ko.wikipedia.org/wiki/%EB%B6%81%EA%B7%B9%EC%97%AC%EC%9A%B0" target="_blank" rel="noopener noreferrer">북극여우</a></td>
+            <td><a href="https://upload.wikimedia.org/wikipedia/commons/c/c7/Arctic_fox_in_snow_%28Unsplash%29.jpg" target="_blank" rel="noopener noreferrer">이미지 파일</a></td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+          <tr>
+            <td>펭귄</td>
+            <td><a href="https://ko.wikipedia.org/wiki/%ED%8E%AD%EA%B7%84" target="_blank" rel="noopener noreferrer">펭귄</a></td>
+            <td><a href="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a3/Aptenodytes_forsteri_-Snow_Hill_Island%2C_Antarctica_-adults_and_juvenile-8.jpg/330px-Aptenodytes_forsteri_-Snow_Hill_Island%2C_Antarctica_-adults_and_juvenile-8.jpg" target="_blank" rel="noopener noreferrer">이미지 파일</a></td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+          <tr>
+            <td>산양</td>
+            <td><a href="https://ko.wikipedia.org/wiki/%EC%82%B0%EC%96%91" target="_blank" rel="noopener noreferrer">산양</a></td>
+            <td><a href="https://upload.wikimedia.org/wikipedia/commons/thumb/0/03/Adult_male_amur_goral_standing_on_rock_at_National_Institute_of_Ecology%2C_Korea.jpg/330px-Adult_male_amur_goral_standing_on_rock_at_National_Institute_of_Ecology%2C_Korea.jpg" target="_blank" rel="noopener noreferrer">이미지 파일</a></td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+          <tr>
+            <td>수달</td>
+            <td><a href="https://ko.wikipedia.org/wiki/%EC%88%98%EB%8B%AC" target="_blank" rel="noopener noreferrer">수달</a></td>
+            <td><a href="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b5/Fischotter_Lutra_lutra1.jpg/330px-Fischotter_Lutra_lutra1.jpg" target="_blank" rel="noopener noreferrer">이미지 파일</a></td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+          <tr>
+            <td>다슬기</td>
+            <td><a href="https://ko.wikipedia.org/wiki/%EB%8B%A4%EC%8A%AC%EA%B8%B0" target="_blank" rel="noopener noreferrer">다슬기</a></td>
+            <td><a href="https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/Semisulcospira_kurodai2.jpg/330px-Semisulcospira_kurodai2.jpg" target="_blank" rel="noopener noreferrer">이미지 파일</a></td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+          <tr>
+            <td>송사리</td>
+            <td><a href="https://ko.wikipedia.org/wiki/%EC%86%A1%EC%82%AC%EB%A6%AC" target="_blank" rel="noopener noreferrer">송사리</a></td>
+            <td><a href="https://upload.wikimedia.org/wikipedia/commons/thumb/4/49/Nihonmedaka.jpg/330px-Nihonmedaka.jpg" target="_blank" rel="noopener noreferrer">이미지 파일</a></td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+          <tr>
+            <td>소금쟁이</td>
+            <td><a href="https://ko.wikipedia.org/wiki/%EC%86%8C%EA%B8%88%EC%9F%81%EC%9D%B4" target="_blank" rel="noopener noreferrer">소금쟁이</a></td>
+            <td>위키 페이지 이미지</td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+          <tr>
+            <td>피라미</td>
+            <td><a href="https://ko.wikipedia.org/wiki/%ED%94%BC%EB%9D%BC%EB%AF%B8" target="_blank" rel="noopener noreferrer">피라미</a></td>
+            <td>위키 페이지 이미지</td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+          <tr>
+            <td>왜가리</td>
+            <td><a href="https://ko.wikipedia.org/wiki/%EC%99%9C%EA%B0%80%EB%A6%AC" target="_blank" rel="noopener noreferrer">왜가리</a></td>
+            <td>위키 페이지 이미지</td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+          <tr>
+            <td>물방개</td>
+            <td><a href="https://ko.wikipedia.org/wiki/%EB%AC%BC%EB%B0%A9%EA%B0%9C" target="_blank" rel="noopener noreferrer">물방개</a></td>
+            <td>위키 페이지 이미지</td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+          <tr>
+            <td>메기</td>
+            <td><a href="https://ko.wikipedia.org/wiki/%EB%A9%94%EA%B8%B0" target="_blank" rel="noopener noreferrer">메기</a></td>
+            <td><a href="https://upload.wikimedia.org/wikipedia/commons/thumb/a/af/Silurus.jpg/330px-Silurus.jpg" target="_blank" rel="noopener noreferrer">이미지 파일</a></td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+          <tr>
+            <td>개구리</td>
+            <td><a href="https://ko.wikipedia.org/wiki/%EA%B0%9C%EA%B5%AC%EB%A6%AC" target="_blank" rel="noopener noreferrer">개구리</a></td>
+            <td><a href="https://upload.wikimedia.org/wikipedia/commons/thumb/5/58/Dark-spotted_Frog_%28Pelophylax_nigromaculatus%29.jpg/960px-Dark-spotted_Frog_%28Pelophylax_nigromaculatus%29.jpg" target="_blank" rel="noopener noreferrer">이미지 파일</a></td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+          <tr>
+            <td>청둥오리</td>
+            <td><a href="https://ko.wikipedia.org/wiki/%EC%B2%AD%EB%91%A5%EC%98%A4%EB%A6%AC" target="_blank" rel="noopener noreferrer">청둥오리</a></td>
+            <td><a href="https://upload.wikimedia.org/wikipedia/commons/thumb/b/bf/Anas_platyrhynchos_male_female_quadrat.jpg/330px-Anas_platyrhynchos_male_female_quadrat.jpg" target="_blank" rel="noopener noreferrer">이미지 파일</a></td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+          <tr>
+            <td>갈매기</td>
+            <td><a href="https://ko.wikipedia.org/wiki/%EA%B0%88%EB%A7%A4%EA%B8%B0" target="_blank" rel="noopener noreferrer">갈매기</a></td>
+            <td>위키 페이지 이미지</td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+          <tr>
+            <td>조개</td>
+            <td><a href="https://ko.wikipedia.org/wiki/%EC%A1%B0%EA%B0%9C" target="_blank" rel="noopener noreferrer">조개</a></td>
+            <td><a href="https://upload.wikimedia.org/wikipedia/commons/thumb/4/46/Seashells_in_the_basket.jpg/330px-Seashells_in_the_basket.jpg" target="_blank" rel="noopener noreferrer">이미지 파일</a></td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+          <tr>
+            <td>게</td>
+            <td><a href="https://ko.wikipedia.org/wiki/%EA%B2%8C" target="_blank" rel="noopener noreferrer">게</a></td>
+            <td>위키 페이지 이미지</td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+          <tr>
+            <td>전복</td>
+            <td><a href="https://ko.wikipedia.org/wiki/%EC%A0%84%EB%B3%B5" target="_blank" rel="noopener noreferrer">전복</a></td>
+            <td>위키 페이지 이미지</td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+          <tr>
+            <td>소라</td>
+            <td><a href="https://ko.wikipedia.org/wiki/%EC%86%8C%EB%9D%BC" target="_blank" rel="noopener noreferrer">소라</a></td>
+            <td><a href="https://upload.wikimedia.org/wikipedia/commons/thumb/2/23/Turbo_cornutus_%28horned_turban_snail%29_2_%2825031884946%29.jpg/330px-Turbo_cornutus_%28horned_turban_snail%29_2_%2825031884946%29.jpg" target="_blank" rel="noopener noreferrer">이미지 파일</a></td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+          <tr>
+            <td>돌돔</td>
+            <td><a href="https://ko.wikipedia.org/wiki/%EB%8F%8C%EB%8F%94" target="_blank" rel="noopener noreferrer">돌돔</a></td>
+            <td><a href="https://upload.wikimedia.org/wikipedia/commons/thumb/8/8f/K231003%EB%8F%8C%EB%8F%94.jpg/330px-K231003%EB%8F%8C%EB%8F%94.jpg" target="_blank" rel="noopener noreferrer">이미지 파일</a></td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+          <tr>
+            <td>해삼</td>
+            <td><a href="https://ko.wikipedia.org/wiki/%ED%95%B4%EC%82%BC" target="_blank" rel="noopener noreferrer">해삼</a></td>
+            <td><a href="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c0/Holothuria_cf_arguinensis.jpg/330px-Holothuria_cf_arguinensis.jpg" target="_blank" rel="noopener noreferrer">이미지 파일</a></td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+          <tr>
+            <td>돌고래</td>
+            <td><a href="https://ko.wikipedia.org/wiki/%EB%8F%8C%EA%B3%A0%EB%9E%98" target="_blank" rel="noopener noreferrer">돌고래</a></td>
+            <td><a href="https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/Tursiops_truncatus_01.jpg/330px-Tursiops_truncatus_01.jpg" target="_blank" rel="noopener noreferrer">이미지 파일</a></td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+          <tr>
+            <td>오징어</td>
+            <td><a href="https://ko.wikipedia.org/wiki/%EC%98%A4%EC%A7%95%EC%96%B4" target="_blank" rel="noopener noreferrer">오징어</a></td>
+            <td><a href="https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Loligo_vulgaris.jpg/960px-Loligo_vulgaris.jpg" target="_blank" rel="noopener noreferrer">이미지 파일</a></td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+          <tr>
+            <td>바다거북</td>
+            <td><a href="https://ko.wikipedia.org/wiki/%EB%B0%94%EB%8B%A4%EA%B1%B0%EB%B6%81" target="_blank" rel="noopener noreferrer">바다거북</a></td>
+            <td><a href="https://upload.wikimedia.org/wikipedia/commons/thumb/b/bb/Hawaii_turtle_2.JPG/330px-Hawaii_turtle_2.JPG" target="_blank" rel="noopener noreferrer">이미지 파일</a></td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+          <tr>
+            <td>고등어</td>
+            <td><a href="https://ko.wikipedia.org/wiki/%EA%B3%A0%EB%93%B1%EC%96%B4" target="_blank" rel="noopener noreferrer">고등어</a></td>
+            <td><a href="https://upload.wikimedia.org/wikipedia/commons/3/3e/Scomber_japonicus.png" target="_blank" rel="noopener noreferrer">이미지 파일</a></td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+          <tr>
+            <td>해마</td>
+            <td><a href="https://en.wikipedia.org/wiki/Seahorse" target="_blank" rel="noopener noreferrer">Seahorse</a></td>
+            <td><a href="https://upload.wikimedia.org/wikipedia/commons/thumb/2/25/Hippocampus_hippocampus_%28on_Ascophyllum_nodosum%29.jpg/330px-Hippocampus_hippocampus_%28on_Ascophyllum_nodosum%29.jpg" target="_blank" rel="noopener noreferrer">이미지 파일</a></td>
+            <td>저작자/라이선스는 원본 위키백과·위키미디어 공용 페이지에서 확인</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <a class="back-link" href="./index.html">게임으로 돌아가기</a>
+  </main>
+</body>
+
+</html>

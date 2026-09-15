@@ -1,8 +1,12 @@
 // 에셋 로드 → 타이틀로 이동
-// Sprout Lands 타일·오브젝트·UI를 16px/32px/48px 프레임으로 잘라 씁니다.
+// 배경은 지역당 한 장 그린 detailed-pixel 이미지(768×1088 × 5장)를 그대로 씁니다.
+// Sprout Lands 시트는 타이틀 장식·캐릭터 애니메이션·잠긴 문 울타리에 남은 것만 16px로 자릅니다.
 import Phaser from "phaser/dist/phaser-arcade-physics.min.js";
 import { KOREAN_FONT } from "../ui/UiHelpers.js";
-import { preloadAnimalAtlases } from "../world/AnimalSprites.js";
+import { REGION_ART } from "../world/WorldMap.js";
+
+const TITLE_ART_KEY = "title-park";
+import { preloadAnimalAtlases, createAnimalTextures } from "../world/AnimalSprites.js";
 
 export default class BootScene extends Phaser.Scene {
   constructor() {
@@ -10,59 +14,50 @@ export default class BootScene extends Phaser.Scene {
   }
 
   preload() {
-    const w = this.cameras.main.width;
-    const h = this.cameras.main.height;
-
-    this.add.text(w / 2, h / 2 - 24, "동물도감 모험 준비 중...", {
+    const label = this.add.text(0, 0, "동물도감 모험 준비 중...", {
       fontFamily: KOREAN_FONT,
       fontSize: "20px",
-      color: "#fff8e7"
+      color: "#f4ebc8"
     }).setOrigin(0.5);
+    const track = this.add.rectangle(0, 0, 240, 16, 0x5c536a, 0.9);
+    const bar = this.add.rectangle(0, 0, 4, 12, 0xcbd784).setOrigin(0, 0.5);
 
-    this.add.rectangle(w / 2, h / 2 + 24, 240, 16, 0x2d1b0e, 0.4);
-    const bar = this.add.rectangle(w / 2 - 118, h / 2 + 24, 4, 12, 0xf0d9a0).setOrigin(0, 0.5);
+    const layoutLoader = () => {
+      const w = this.scale.gameSize.width;
+      const h = this.scale.gameSize.height;
+      this.cameras.main.setSize(w, h);
+      label.setPosition(w / 2, h / 2 - 24);
+      track.setPosition(w / 2, h / 2 + 24);
+      bar.setPosition(w / 2 - 118, h / 2 + 24);
+    };
+    layoutLoader();
+    this.scale.on("resize", layoutLoader);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.scale.off("resize", layoutLoader));
+
     this.load.on("progress", (value) => {
       bar.width = Math.max(4, 236 * value);
     });
 
     const base = "assets/sprout-lands";
 
-    // ── 타일셋 (16×16) ──
-    this.load.spritesheet("tiles-grass", `${base}/sprites/Tilesets/Grass.png`, {
-      frameWidth: 16, frameHeight: 16
-    });
-    this.load.spritesheet("tiles-water", `${base}/sprites/Tilesets/Water.png`, {
-      frameWidth: 16, frameHeight: 16
-    });
-    this.load.spritesheet("tiles-hills", `${base}/sprites/Tilesets/Hills.png`, {
-      frameWidth: 16, frameHeight: 16
-    });
+    // ── 월드 배경 (지역당 한 장 768×1088) + 타이틀 배경 ──
+    REGION_ART.forEach(({ key, url }) => this.load.image(key, url));
+    this.load.image(TITLE_ART_KEY, "assets/detailed-pixel/title-park.webp");
+
+    // ── 잠긴 문 울타리 (16×16) — 문이 닫힐 때 길을 막는 조각 ──
     this.load.spritesheet("tiles-fence", `${base}/sprites/Tilesets/Fences.png`, {
       frameWidth: 16, frameHeight: 16
     });
-    // 모래·흙 (사막/해변/길) — Grass와 같은 블롭 배치의 Wide v2 시트
-    this.load.spritesheet("tiles-sand", `${base}/sprites/Tilesets/Tilled_Dirt_Wide_v2.png`, {
-      frameWidth: 16, frameHeight: 16
-    });
-    this.load.spritesheet("obj-path", `${base}/sprites/Objects/Paths.png`, {
-      frameWidth: 16, frameHeight: 16
-    });
 
-    // ── 장식 오브젝트 ──
-    this.load.spritesheet("obj-biom", `${base}/sprites/Objects/Basic Grass Biom things 1.png`, {
-      frameWidth: 16, frameHeight: 16
-    });
-    this.load.spritesheet("obj-bridge", `${base}/sprites/Objects/Wood Bridge.png`, {
-      frameWidth: 16, frameHeight: 16
-    });
-    this.load.spritesheet("obj-chest", `${base}/sprites/Objects/Chest.png`, {
-      frameWidth: 48, frameHeight: 48
-    });
-    this.load.image("obj-coop", `${base}/sprites/Objects/Free_Chicken_House.png`);
-
-    // ── 캐릭터 (48×48, 4×4: 아래/위/왼쪽/오른쪽) ──
+    // ── 캐릭터 (플레이어 48×48, 4×4: 아래/위/왼쪽/오른쪽) ──
     this.load.spritesheet("player", `${base}/sprites/Characters/Basic Charakter Spritesheet.png`, {
       frameWidth: 48, frameHeight: 48
+    });
+    this.load.spritesheet("celebration-player-happy", `${base}/celebration/celebration-player-happy.png`, {
+      frameWidth: 32, frameHeight: 32
+    });
+    this.load.spritesheet("failure-player-gentle", `${base}/failure/failure-player-gentle.png`, {
+      frameWidth: 32, frameHeight: 32
     });
     this.load.spritesheet("npc-chicken", `${base}/sprites/Characters/Free Chicken Sprites.png`, {
       frameWidth: 16, frameHeight: 16
@@ -72,21 +67,18 @@ export default class BootScene extends Phaser.Scene {
     });
     preloadAnimalAtlases(this);
 
-    // ── UI ──
-    this.load.image("ui-dialog", `${base}/ui/Sprite sheets/Dialouge UI/dialog box.png`);
-    this.load.image("ui-dialog-tail", `${base}/ui/Sprite sheets/Dialouge UI/dialog box big.png`);
-    this.load.spritesheet("ui-hearts", `${base}/ui/emojis-free/emoji style ui/Inventory_Herat_Spritesheet.png`, {
-      frameWidth: 16, frameHeight: 16
-    });
-    this.load.spritesheet("ui-emotes", `${base}/ui/Sprite sheets/Dialouge UI/Emotes/Teemo Basic emote animations sprite sheet.png`, {
-      frameWidth: 32, frameHeight: 32
-    });
   }
 
   create() {
+    createAnimalTextures(this);
     this.createPlayerAnims();
+    this.createCelebrationAnims();
+    this.createFailureAnims();
     this.createNpcAnims();
-    this.createWaterAnim();
+    // 고해상 픽셀 그림을 화면에 맞춰 줄일 때는 선형 보간이 디테일을 살립니다.
+    if (this.textures.exists(TITLE_ART_KEY)) {
+      this.textures.get(TITLE_ART_KEY).setFilter(Phaser.Textures.FilterMode.LINEAR);
+    }
     this.scene.start("TitleScene");
   }
 
@@ -110,6 +102,36 @@ export default class BootScene extends Phaser.Scene {
         frameRate: 2,
         repeat: -1
       });
+      // 수영: 기존 시트 각 방향 0·1열 두 자세 (발은 오버월드에서 crop)
+      this.anims.create({
+        key: `swim-${dir}`,
+        frames: this.anims.generateFrameNumbers("player", { frames: [start, start + 1] }),
+        frameRate: 4,
+        repeat: -1
+      });
+    });
+  }
+
+  createCelebrationAnims() {
+    if (this.anims.exists("celebration-player-happy")) return;
+    // Sprout Lands 원본 이모트의 준비 자세와 눈웃음 자세를 차례로 재생합니다.
+    this.anims.create({
+      key: "celebration-player-happy",
+      frames: this.anims.generateFrameNumbers("celebration-player-happy", { frames: [0, 1] }),
+      frameRate: 6,
+      // 한 번 재생한 뒤 마지막 눈웃음 프레임을 유지해 결과 화면에서도 표정이 보이게 합니다.
+      repeat: 0
+    });
+  }
+
+  createFailureAnims() {
+    if (this.anims.exists("failure-player-gentle")) return;
+    // 원본의 작은 실망 표정만 한 번 재생하고, 마지막 눈 감은 자세를 유지합니다.
+    this.anims.create({
+      key: "failure-player-gentle",
+      frames: this.anims.generateFrameNumbers("failure-player-gentle", { frames: [0, 1, 2] }),
+      frameRate: 6,
+      repeat: 0
     });
   }
 
@@ -144,14 +166,4 @@ export default class BootScene extends Phaser.Scene {
     }
   }
 
-  createWaterAnim() {
-    if (!this.anims.exists("water-shine") && this.textures.exists("tiles-water")) {
-      this.anims.create({
-        key: "water-shine",
-        frames: this.anims.generateFrameNumbers("tiles-water", { start: 0, end: 3 }),
-        frameRate: 3,
-        repeat: -1
-      });
-    }
-  }
 }

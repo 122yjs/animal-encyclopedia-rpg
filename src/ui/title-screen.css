@@ -1,0 +1,99 @@
+/* 타이틀 화면 — 고밀도 픽셀 배경 위에 읽기용 글자와 버튼만 올립니다. */
+.ui-screen.title-screen {
+  background: transparent;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  justify-items: center;
+  align-content: stretch;
+  gap: clamp(12px, 2.4vh, 26px);
+  transition: opacity .22s linear;
+}
+.ui-screen.title-screen.is-leaving {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.title-screen .title-heading {
+  width: min(100%, 540px);
+  padding: clamp(16px, 2.6vh, 26px) clamp(18px, 4vw, 34px);
+  border: 8px solid transparent;
+  border-image: var(--ui-frame-image) 8 / 8px stretch;
+  border-radius: 0;
+  background: radial-gradient(circle at 1px 1px, rgb(92 83 106 / .045) 1px, transparent 1px) 0 0 / 8px 8px, var(--ui-paper);
+  background-clip: padding-box;
+  filter: drop-shadow(0 5px 0 var(--ui-wood-shadow));
+  image-rendering: pixelated;
+  text-align: center;
+}
+.title-screen .title-kicker {
+  font-size: clamp(13px, 1.7vw, 15px);
+  font-weight: 700;
+  color: var(--ui-muted);
+}
+.title-screen .title-name {
+  margin-top: 4px;
+  font-size: clamp(30px, 5.4vw, 46px);
+  line-height: 1.1;
+  letter-spacing: -.02em;
+  color: var(--ui-ink);
+}
+.title-screen .title-sub {
+  margin-top: 8px;
+  color: var(--ui-muted);
+  font-size: clamp(13px, 1.8vw, 16px);
+}
+
+.title-screen .title-actions {
+  align-self: center;
+  display: grid;
+  gap: 12px;
+  width: min(100%, 360px);
+}
+.title-screen .title-actions .ui-button {
+  width: 100%;
+}
+
+.title-screen .title-footer {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  max-width: min(100%, 460px);
+  padding: 8px 14px;
+  border: 8px solid transparent;
+  border-image: var(--ui-frame-image) 8 / 8px stretch;
+  border-radius: 0;
+  background: rgb(244 235 200 / .94);
+  background-clip: padding-box;
+  color: var(--ui-ink);
+  filter: drop-shadow(0 3px 0 var(--ui-wood-shadow));
+  image-rendering: pixelated;
+  text-align: center;
+}
+.title-screen .title-footer p + p {
+  margin-top: 0;
+}
+.title-screen .title-hint {
+  max-width: 46ch;
+  font-size: clamp(13px, 1.7vw, 15px);
+  white-space: pre-line;
+  font-weight: 600;
+}
+.title-screen .title-credits {
+  font-size: 12px;
+}
+
+/* 가로가 짧은 휴대폰·가로 화면에서는 여백을 줄여 들판을 더 보여 줍니다. */
+@media (max-height: 560px) {
+  .ui-screen.title-screen {
+    gap: 8px;
+  }
+  .title-screen .title-heading {
+    padding: 10px 14px;
+  }
+  .title-screen .title-name {
+    font-size: clamp(24px, 5vw, 34px);
+  }
+  .title-screen .title-sub {
+    font-size: 12px;
+  }
+}

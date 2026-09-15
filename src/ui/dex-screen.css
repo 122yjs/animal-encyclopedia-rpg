@@ -1,0 +1,140 @@
+/* 도감 전용 배치 — 공통 ScreenUi 토큰을 쓰고, 스크롤·그리드·상세만 여기서 잡습니다. */
+
+.dex-screen {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background:
+    linear-gradient(rgb(172 206 193 / .84), rgb(157 174 124 / .88)),
+    var(--dex-forest, none) center / cover no-repeat;
+}
+
+.dex-screen .ui-header,
+.dex-screen .ui-tabs {
+  flex-shrink: 0;
+}
+
+.dex-screen .ui-header {
+  width: min(100%, 1200px);
+}
+
+.dex-screen .ui-tabs {
+  padding: 8px;
+  border: 8px solid transparent;
+  border-image: var(--ui-frame-image) 8 / 8px stretch;
+  border-radius: 0;
+  background: rgb(244 235 200 / .94);
+  background-clip: padding-box;
+  filter: drop-shadow(0 4px 0 var(--ui-wood-shadow));
+  image-rendering: pixelated;
+}
+
+.dex-heading {
+  min-width: 0;
+}
+
+.dex-heading h1 {
+  color: var(--ui-ink);
+}
+
+.dex-list-section,
+.dex-detail {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+.dex-intro {
+  margin-bottom: 16px;
+}
+
+.dex-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  padding: 14px;
+  text-align: left;
+}
+
+.dex-card .ui-photo img {
+  object-position: 50% 32%;
+}
+
+.dex-card-title {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.dex-card[role="button"] {
+  cursor: pointer;
+}
+
+.dex-card--locked {
+  cursor: default;
+}
+
+.dex-silhouette {
+  aspect-ratio: 4 / 3;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--ui-deep);
+  border-radius: var(--ui-radius);
+  background: var(--ui-mint);
+  color: var(--ui-ink);
+  font-size: 28px;
+  font-weight: 800;
+  opacity: 0.72;
+}
+
+.dex-card--highlight {
+  outline: 3px solid var(--ui-rose);
+  outline-offset: 3px;
+}
+
+.dex-detail-actions {
+  margin-bottom: 16px;
+}
+
+.dex-detail-media .ui-photo {
+  background: var(--ui-paper);
+}
+
+.dex-status {
+  width: fit-content;
+  margin-top: 12px;
+  padding: 4px 10px;
+  border: 2px solid var(--ui-deep);
+  border-radius: var(--ui-radius);
+  background: var(--ui-lime);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ui-ink);
+}
+
+.dex-facts {
+  min-width: 0;
+}
+
+.dex-fact + .dex-fact {
+  margin-top: 14px;
+}
+
+.dex-fact-body {
+  margin-top: 4px;
+  font-size: 18px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.dex-source {
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  font-size: 18px;
+  color: var(--ui-deep);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}

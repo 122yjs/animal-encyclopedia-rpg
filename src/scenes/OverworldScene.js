@@ -1,7 +1,7 @@
 // 오버월드 — 5개 서식지를 잇는 모험 맵
 // 동물 마커에 닿으면 턴제 퀴즈 배틀로, 지역 동물을 모두 모으면 배지와 함께 다음 문이 열립니다.
 import Phaser from "phaser/dist/phaser-arcade-physics.min.js";
-import { TILE, MAP_H, PATH_Y, regions, regionAtTile, regionById, gates, animalEmoji } from "../data/regions.js";
+import { TILE, MAP_H, PATH_Y, regions, regionAtTile, regionById, gates } from "../data/regions.js";
 import { animalById } from "../data/animals.js";
 import {
   isCollected,
@@ -13,24 +13,247 @@ import {
   isGateOpen
 } from "../systems/ProgressStore.js";
 import WorldMap from "../world/WorldMap.js";
-import { ensureAnimalAnimation, ensureAnimalTexture, isFlying } from "../world/AnimalSprites.js";
 import {
-  KOREAN_FONT,
-  createWoodButton,
-  createWoodPanel,
-  createVirtualPad,
-  createDialogPanel,
-  playEmote
-} from "../ui/UiHelpers.js";
+  ANIMAL_SOURCE_FACING,
+  ensureAnimalAnimation,
+  getAnimalFrame,
+  isFlying
+} from "../world/AnimalSprites.js";
+import { KOREAN_FONT, playEmote } from "../ui/UiHelpers.js";
+import {
+  createButton,
+  createCompletionBadge,
+  createElement,
+  showCompletionReward
+} from "../ui/ScreenUi.js";
 import { directionParticle } from "../systems/ObservationBuilder.js";
+import "../ui/world-hud.css";
 
 const PLAYER_SPEED = 150;
+const SWIM_SPEED = 80;
 const PLAYER_SCALE = 1.65;
 const ENCOUNTER_WANDER_RADIUS = Object.freeze({
   land: 3,
   water: 4,
   shore: 6
 });
+
+/** 카메라 줌과 관계없이 화면에서 logicalPx로 읽히게 월드 폰트 크기를 맞춥니다. */
+function screenFontSize(scene, logicalPx) {
+  const zoom = scene.cameras.main?.zoom || 1;
+  return `${Math.max(1, Math.round(logicalPx / zoom))}px`;
+}
+
+function hudHost() {
+  return document.getElementById("ui-root") || document.body;
+}
+
+/** 뷰포트 가장자리 DOM HUD. createScreen을 쓰지 않아 월드 입력을 유지합니다. */
+function createWorldHud({ onMap, onDex }) {
+  document.querySelectorAll("[data-world-hud]").forEach((node) => node.remove());
+
+  const root = createElement("div", "world-hud");
+  root.dataset.worldHud = "1";
+
+  const panel = createElement("section", "ui-card world-hud__panel");
+  panel.setAttribute("aria-label", "탐험 상태");
+  const regionEl = createElement("p", "world-hud__region");
+  const countEl = createElement("p", "ui-muted world-hud__count");
+  const badges = createElement("div", "world-hud__badges");
+  const badgeEls = regions.map((region) => {
+    const badge = createElement("span", "world-hud__badge", region.short);
+    badge.title = region.name;
+    badges.append(badge);
+    return badge;
+  });
+  const masterReward = createElement("div", "world-hud__master");
+  masterReward.hidden = true;
+  masterReward.append(
+    createCompletionBadge({ master: true }),
+    createElement("span", "", "도감 마스터")
+  );
+  panel.append(regionEl, countEl, badges, masterReward);
+
+  const actions = createElement("div", "ui-actions world-hud__actions");
+  const mapBtn = createButton("지도", () => {
+    releaseAll();
+    mapBtn.blur();
+    onMap();
+  });
+  mapBtn.name = "overworld-map";
+  mapBtn.setAttribute("aria-label", "지도");
+  const dexBtn = createButton("도감", () => {
+    releaseAll();
+    dexBtn.blur();
+    onDex();
+  }, { primary: true });
+  dexBtn.name = "overworld-dex";
+  dexBtn.setAttribute("aria-label", "도감");
+  actions.append(mapBtn, dexBtn);
+
+  // 아날로그 스틱: 반지름으로만 잡고, 방향은 360도 연속입니다. 4/8방향 칸은 쓰지 않습니다.
+  const vector = { x: 0, y: 0 };
+  const DEADZONE = 0.12;
+  let pointerId = null;
+  let originX = 0;
+  let originY = 0;
+  let travel = 1;
+
+  const pad = createElement("button", "world-hud__pad");
+  pad.type = "button";
+  pad.dataset.virtualPad = "1";
+  pad.setAttribute("aria-label", "이동 스틱. 키보드 화살표 또는 WASD로도 이동합니다.");
+  const knob = createElement("span", "world-hud__pad-knob");
+  knob.dataset.virtualPadKnob = "1";
+  knob.setAttribute("aria-hidden", "true");
+  pad.append(knob);
+
+  const placeKnob = (dx, dy) => {
+    knob.style.transform = `translate(${dx}px, ${dy}px)`;
+  };
+
+  const releaseAll = () => {
+    vector.x = 0;
+    vector.y = 0;
+    pad.classList.remove("is-held");
+    placeKnob(0, 0);
+    const held = pointerId;
+    pointerId = null;
+    if (held != null && pad.hasPointerCapture?.(held)) {
+      pad.releasePointerCapture(held);
+    }
+  };
+
+  const captureGeometry = () => {
+    const rect = pad.getBoundingClientRect();
+    originX = rect.left + rect.width * 0.5;
+    originY = rect.top + rect.height * 0.5;
+    const knobSize = knob.getBoundingClientRect().width;
+    travel = Math.max(1, (rect.width - knobSize) * 0.5);
+  };
+
+  const applyPointer = (event) => {
+    let dx = event.clientX - originX;
+    let dy = event.clientY - originY;
+    const dist = Math.hypot(dx, dy);
+    if (dist > travel) {
+      dx = (dx / dist) * travel;
+      dy = (dy / dist) * travel;
+    }
+    placeKnob(dx, dy);
+    const mag = Math.hypot(dx, dy);
+    const dead = travel * DEADZONE;
+    if (mag <= dead) {
+      vector.x = 0;
+      vector.y = 0;
+      return;
+    }
+    // 데드존 바깥부터 0, 가장자리에서 1이 되도록 밀린 거리를 다시 맞춰 줍니다.
+    const scaled = (mag - dead) / (travel - dead);
+    vector.x = (dx / mag) * scaled;
+    vector.y = (dy / mag) * scaled;
+  };
+
+  pad.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!event.isPrimary || event.button > 0 || pointerId != null) return;
+    pointerId = event.pointerId;
+    pad.classList.add("is-held");
+    captureGeometry();
+    pad.setPointerCapture?.(event.pointerId);
+    applyPointer(event);
+  });
+  pad.addEventListener("pointermove", (event) => {
+    if (event.pointerId !== pointerId) return;
+    event.preventDefault();
+    if (event.pointerType === "mouse" && event.buttons === 0) {
+      releaseAll();
+      return;
+    }
+    applyPointer(event);
+  });
+  const onPointerEnd = (event) => {
+    if (pointerId == null || event.pointerId !== pointerId) return;
+    event.preventDefault();
+    releaseAll();
+  };
+  pad.addEventListener("pointerup", onPointerEnd);
+  pad.addEventListener("pointercancel", onPointerEnd);
+  pad.addEventListener("lostpointercapture", onPointerEnd);
+  pad.addEventListener("contextmenu", (event) => event.preventDefault());
+  pad.addEventListener("keydown", (event) => {
+    if (event.key === " " || event.key === "Enter") event.preventDefault();
+  });
+
+  const toast = createElement("div", "ui-card world-hud__toast");
+  toast.hidden = true;
+  const banner = createElement("div", "ui-card world-hud__banner");
+  banner.hidden = true;
+  root.append(panel, actions, pad, toast, banner);
+  hudHost().append(root);
+
+  const blockCanvas = (event) => event.stopPropagation();
+  [panel, actions, pad, toast, banner].forEach((node) => {
+    node.addEventListener("pointerdown", blockCanvas);
+    node.addEventListener("pointerup", blockCanvas);
+    node.addEventListener("click", blockCanvas);
+  });
+
+  const onBlur = () => releaseAll();
+  const onVis = () => {
+    if (document.hidden) releaseAll();
+  };
+  const onViewportChange = () => releaseAll();
+  window.addEventListener("blur", onBlur);
+  document.addEventListener("visibilitychange", onVis);
+  window.addEventListener("resize", onViewportChange);
+  window.addEventListener("orientationchange", onViewportChange);
+
+  let toastTimer = 0;
+  let bannerTimer = 0;
+
+  return {
+    root,
+    releasePad: releaseAll,
+    getVector() {
+      return vector;
+    },
+    refresh({ region, countText, badgesOn, master }) {
+      regionEl.textContent = region.name;
+      countEl.textContent = countText;
+      badgeEls.forEach((node, i) => node.classList.toggle("is-off", !badgesOn[i]));
+      masterReward.hidden = !master;
+    },
+    showToast(text, ms = 2300) {
+      window.clearTimeout(toastTimer);
+      toast.hidden = false;
+      toast.textContent = text;
+      toastTimer = window.setTimeout(() => {
+        toast.hidden = true;
+      }, ms);
+    },
+    showBanner(text) {
+      window.clearTimeout(bannerTimer);
+      banner.hidden = false;
+      banner.textContent = text;
+      bannerTimer = window.setTimeout(() => {
+        banner.hidden = true;
+      }, 1800);
+    },
+    destroy() {
+      window.clearTimeout(toastTimer);
+      window.clearTimeout(bannerTimer);
+      releaseAll();
+      window.removeEventListener("blur", onBlur);
+      document.removeEventListener("visibilitychange", onVis);
+      window.removeEventListener("resize", onViewportChange);
+      window.removeEventListener("orientationchange", onViewportChange);
+      root.remove();
+    }
+  };
+}
+
 
 function encounterSurface(animal) {
   if (!animal?.inWater) return "land";
@@ -52,6 +275,9 @@ export default class OverworldScene extends Phaser.Scene {
   create() {
     this.encounterLocked = false;
     this._navigating = false;
+    this.celebrationRunning = false;
+    this.celebrationGen = 0;
+    this.completionReward = null;
     this.gateToastAt = 0;
     this.createdAt = this.time.now;
     this.encounterZones = [];
@@ -65,6 +291,9 @@ export default class OverworldScene extends Phaser.Scene {
       this.createGateSensors();
       this.createHud();
       this.setupInput();
+      this.scale.on("resize", this.onGameResize, this);
+      this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.teardownWorldUi, this);
+      this.events.once(Phaser.Scenes.Events.DESTROY, this.teardownWorldUi, this);
       this.time.delayedCall(350, () => this.checkCelebrations());
     } catch (error) {
       console.error("오버월드 생성 실패:", error);
@@ -72,15 +301,32 @@ export default class OverworldScene extends Phaser.Scene {
     }
   }
 
+  onGameResize(gameSize) {
+    this.cameras.main.setSize(gameSize.width, gameSize.height);
+  }
+
+  teardownWorldUi() {
+    this.events.off(Phaser.Scenes.Events.SHUTDOWN, this.teardownWorldUi, this);
+    this.events.off(Phaser.Scenes.Events.DESTROY, this.teardownWorldUi, this);
+    this.scale.off("resize", this.onGameResize, this);
+    this.celebrationGen += 1;
+    this.completionReward?.destroy?.();
+    this.completionReward = null;
+    this.hud?.releasePad?.();
+    this.hud?.destroy?.();
+    this.hud = null;
+    this.pad = null;
+  }
+
   showFatalError(error) {
     const { width, height } = this.cameras.main;
-    this.add.rectangle(width / 2, height / 2, width, height, 0x2d1b0e, 0.92)
+    this.add.rectangle(width / 2, height / 2, width, height, 0x5c536a, 0.92)
       .setScrollFactor(0).setDepth(9000);
     this.add.text(width / 2, height / 2 - 20, "맵을 불러오지 못했어요", {
-      fontFamily: KOREAN_FONT, fontSize: "18px", color: "#fff8e7"
+      fontFamily: KOREAN_FONT, fontSize: screenFontSize(this, 16), color: "#f4ebc8"
     }).setOrigin(0.5).setScrollFactor(0).setDepth(9001);
     this.add.text(width / 2, height / 2 + 20, String(error?.message || error), {
-      fontFamily: KOREAN_FONT, fontSize: "12px", color: "#f0d9a0",
+      fontFamily: KOREAN_FONT, fontSize: screenFontSize(this, 14), color: "#cbd784",
       wordWrap: { width: width - 40 }, align: "center"
     }).setOrigin(0.5).setScrollFactor(0).setDepth(9001);
   }
@@ -103,23 +349,63 @@ export default class OverworldScene extends Phaser.Scene {
 
     this.cameras.main.startFollow(this.player, true, 0.15, 0.15);
     this.lastDir = "down";
-    this.player.anims.play("idle-down");
+    // 잔물결은 한 번만 만들고, 수영 중에 위치·크기만 바꿉니다.
+    this.swimRipple = this.add.ellipse(startX, startY + 10, 26, 8, 0xb7e4ef, 0.4)
+      .setDepth(19)
+      .setVisible(false);
+    this.syncPlayerSurface(false);
 
     this.currentRegionId = regionAtTile(Math.floor(startX / TILE)).id;
+  }
+
+  /** 발밑 타일(발 Y = sprite.y+12)이 물이면 수영입니다. */
+  playerFootInWater() {
+    return this.world.isWaterTile(
+      Math.floor(this.player.x / TILE),
+      Math.floor((this.player.y + 12) / TILE)
+    );
+  }
+
+  /** 물/땅 전환: crop·잔물결·수영/걷기 애니메이션을 한곳에서 맞춥니다. */
+  syncPlayerSurface(moving) {
+    const swimming = this.playerFootInWater();
+    if (swimming) {
+      if (this.player.isCropped === false) this.player.setCrop(0, 0, 48, 29);
+      this.player.anims.play(`swim-${this.lastDir}`, true);
+    } else {
+      if (this.player.isCropped) this.player.setCrop();
+      this.player.anims.play(`${moving ? "walk" : "idle"}-${this.lastDir}`, true);
+    }
+    this.syncSwimRipple(swimming);
+  }
+
+  /** 잔물결 타원은 재할당하지 않고 수영 자세 프레임에 맞춰 갱신합니다. */
+  syncSwimRipple(swimming) {
+    const ripple = this.swimRipple;
+    if (!ripple?.active) return;
+    if (!swimming) {
+      ripple.setVisible(false);
+      return;
+    }
+    const frame = Number(this.player.anims.currentFrame?.textureFrame ?? 0);
+    const kicked = frame % 2 === 1;
+    ripple.setVisible(true);
+    ripple.setPosition(this.player.x, this.player.y + 10);
+    ripple.setScale(kicked ? 1.14 : 0.88, kicked ? 0.95 : 1.05);
   }
 
   // ─── 마을 NPC (분위기용) ─────────────────────────────────
 
   createNpcs() {
-    this.makeNpc("npc-chicken", 8, 10, { x0: 4, y0: 9, x1: 11, y1: 13 }, 26);
-    this.makeNpc("npc-chicken", 10, 12, { x0: 4, y0: 10, x1: 11, y1: 13 }, 26);
-    this.makeNpc("npc-cow", 12, 13, { x0: 9, y0: 11, x1: 13, y1: 14 }, 44);
+    this.makeNpc("chicken", 8, 10, { x0: 4, y0: 9, x1: 11, y1: 13 }, 26);
+    this.makeNpc("chicken", 10, 12, { x0: 4, y0: 10, x1: 11, y1: 13 }, 26);
+    this.makeNpc("cow", 12, 13, { x0: 9, y0: 11, x1: 13, y1: 14 }, 44);
   }
 
-  makeNpc(key, tx, ty, rect, size) {
+  makeNpc(kind, tx, ty, rect, size) {
+    const key = kind === "cow" ? "npc-cow" : "npc-chicken";
     if (!this.textures.exists(key)) return;
     const { x, y } = this.world.tileCenter(tx, ty);
-    const kind = key === "npc-cow" ? "cow" : "chicken";
     const npc = this.add.sprite(x, y, key, 0).setDepth(12).setDisplaySize(size, size);
     npc.play(`${kind}-idle`);
 
@@ -167,50 +453,54 @@ export default class OverworldScene extends Phaser.Scene {
     const startTile = this.pickEncounterStartTile(spawn, wanderTiles, surface);
     const { x, y } = this.world.tileCenter(startTile.tx, startTile.ty);
     const flying = isFlying(spawn.id);
-    const texKey = ensureAnimalTexture(this, spawn.id);
+    const frameDesc = getAnimalFrame(spawn.id, 0);
 
     const parts = [];
     let ring = null;
     if (!collected) {
-      ring = this.add.circle(0, 0, 15, 0xe8a838, 0)
-        .setStrokeStyle(2, 0xe8a838);
+      ring = this.add.circle(0, 0, 15, 0xcf9dab, 0)
+        .setStrokeStyle(2, 0xcf9dab);
       parts.push(ring);
     }
-    parts.push(this.add.ellipse(0, 11, 26, 9, 0x2d1b0e, 0.2));
+    parts.push(this.add.ellipse(0, 11, 26, 9, 0x5c536a, 0.22));
 
+    const corePx = screenFontSize(this, 16);
+    const metaPx = screenFontSize(this, 14);
     let body;
-    if (texKey) {
-      body = this.add.sprite(0, flying ? -10 : -4, texKey)
+    if (frameDesc?.key && this.textures.exists(frameDesc.key)) {
+      body = this.add.sprite(0, flying ? -10 : -4, frameDesc.key, frameDesc.frame)
         .setDisplaySize(flying ? 34 : 38, flying ? 34 : 38)
         .setName(`animal-sprite-${spawn.id}`);
-      if (spawn.tx % 2 === 0) body.setFlipX(true);
       const animationKey = ensureAnimalAnimation(this, spawn.id);
       if (animationKey) body.play(animationKey);
       parts.push(body);
     } else {
-      body = this.add.text(0, -2, animalEmoji[spawn.id] || "❓", {
-        fontSize: "16px", fontFamily: KOREAN_FONT
-      }).setOrigin(0.5);
+      body = this.add.sprite(0, flying ? -10 : -4)
+        .setDisplaySize(flying ? 34 : 38, flying ? 34 : 38)
+        .setName(`animal-sprite-${spawn.id}`)
+        .setVisible(false);
       parts.push(body);
     }
 
     if (collected) {
-      parts.push(this.add.circle(11, -12, 7, 0xd4e8c2, 0.95).setStrokeStyle(1.5, 0x3d7a34));
-      parts.push(this.add.text(11, -12, "✓", {
-        fontSize: "9px", color: "#2d5a28", fontStyle: "bold"
+      parts.push(this.add.circle(12, -14, 9, 0xf4ebc8, 0.95).setStrokeStyle(1.5, 0x5c536a));
+      parts.push(this.add.text(12, -14, "✓", {
+        fontFamily: KOREAN_FONT, fontSize: metaPx, color: "#5c536a", fontStyle: "bold"
       }).setOrigin(0.5));
     }
 
-    parts.push(this.add.text(0, 27, collected ? `${spawn.id} ✓` : spawn.id, {
+    parts.push(this.add.text(0, 28, collected ? `${spawn.id} ✓` : spawn.id, {
       fontFamily: KOREAN_FONT,
-      fontSize: "10px",
-      color: collected ? "#2d5a28" : "#3d2410",
-      backgroundColor: collected ? "#d4e8c2dd" : "#fff8e7dd",
-      padding: { x: 4, y: 2 }
+      fontSize: corePx,
+      color: "#5c536a",
+      backgroundColor: collected ? "#cbd784dd" : "#f4ebc8dd",
+      padding: { x: 5, y: 3 }
     }).setOrigin(0.5));
 
     const marker = this.add.container(x, y, parts).setDepth(10).setName(`animal-marker-${spawn.id}`);
+    marker.animalId = spawn.id;
     marker.animalBody = body;
+    marker.lastWanderX = x;
     marker.wanderSurface = surface;
     marker.wanderTiles = wanderTiles;
     marker.currentWanderTile = startTile;
@@ -265,15 +555,17 @@ export default class OverworldScene extends Phaser.Scene {
   collectEncounterWanderTiles(region, spawn, surface) {
     const tiles = [];
     const radius = ENCOUNTER_WANDER_RADIUS[surface];
-    const x0 = Math.max(region.x0, spawn.tx - radius);
-    const x1 = Math.min(region.x1, spawn.tx + radius);
+    const x0 = Math.max(region.x0, spawn.wanderX?.[0] ?? region.x0, spawn.tx - radius);
+    const x1 = Math.min(region.x1, spawn.wanderX?.[1] ?? region.x1, spawn.tx + radius);
     const y0 = Math.max(1, spawn.ty - radius);
     const y1 = Math.min(MAP_H - 2, spawn.ty + radius);
 
     for (let ty = y0; ty <= y1; ty += 1) {
       for (let tx = x0; tx <= x1; tx += 1) {
         const land = this.world.isWalkableLandTile(tx, ty);
-        const water = this.world.isShoreWaterTile(tx, ty);
+        const water = surface === "water"
+          ? this.world.isWaterTile(tx, ty)
+          : this.world.isShoreWaterTile(tx, ty);
         const allowed = surface === "water" ? water : (surface === "shore" ? land || water : land);
         if (allowed) tiles.push({ tx, ty, water });
       }
@@ -316,7 +608,7 @@ export default class OverworldScene extends Phaser.Scene {
     const target = this.world.tileCenter(targetTile.tx, targetTile.ty);
     const distance = Phaser.Math.Distance.Between(marker.x, marker.y, target.x, target.y);
     const pace = animal?.crawls ? 38 : (animal?.hasFins ? 17 : 24);
-    marker.animalBody?.setFlipX?.(target.x > marker.x);
+    marker.lastWanderX = marker.x;
 
     marker.wanderTween = this.tweens.add({
       targets: marker,
@@ -324,7 +616,10 @@ export default class OverworldScene extends Phaser.Scene {
       y: target.y,
       duration: duration ?? Math.max(650, distance * pace),
       ease: "Sine.easeInOut",
-      onUpdate: () => this.syncEncounterZone(marker),
+      onUpdate: () => {
+        this.syncEncounterFacing(marker);
+        this.syncEncounterZone(marker);
+      },
       onComplete: () => {
         if (!marker.active) return;
         marker.currentWanderTile = targetTile;
@@ -333,6 +628,21 @@ export default class OverworldScene extends Phaser.Scene {
       }
     });
     return marker.wanderTween;
+  }
+
+  /** 목표 방향이 아니라 화면에서 실제 움직인 X를 기준으로 동물 그림만 돌립니다. */
+  syncEncounterFacing(marker) {
+    if (!marker) return;
+    const currentX = marker.x;
+    const previousX = marker.lastWanderX;
+    marker.lastWanderX = currentX;
+    if (!Number.isFinite(currentX) || !Number.isFinite(previousX)) return;
+
+    const dx = currentX - previousX;
+    if (Math.abs(dx) < 0.01) return;
+    const sourceFacing = ANIMAL_SOURCE_FACING[marker.animalId];
+    if (sourceFacing === "front" || !sourceFacing) return;
+    marker.animalBody?.setFlipX?.(sourceFacing === "left" ? dx > 0 : dx < 0);
   }
 
   syncEncounterZone(marker) {
@@ -349,7 +659,7 @@ export default class OverworldScene extends Phaser.Scene {
     if (this.time.now - (this.createdAt ?? 0) < 500) return;
     this.encounterLocked = true;
     this.player.setVelocity(0, 0);
-    this.player.anims.play(`idle-${this.lastDir}`, true);
+    this.syncPlayerSurface(false);
     marker.wanderTimer?.remove(false);
     this.tweens.killTweensOf(marker);
     zone.destroy();
@@ -395,86 +705,43 @@ export default class OverworldScene extends Phaser.Scene {
     const status = regionStatus(gate.from);
     const from = regionById[gate.from];
     const to = regionById[gate.to];
-    const toast = createDialogPanel(this, {
-      text: `🔒 ${to.name}${directionParticle(to.name)} 가는 문이 잠겨 있어요.\n${from.short} 동물 ${status.count}/${status.target} — 모두 만나면 배지와 함께 열려요!`,
-      width: 520,
-      height: 74,
-      y: 64
-    });
-    this.time.delayedCall(2300, () => toast.destroy());
+    this.hud?.showToast(
+      `잠긴 문 · ${to.name}${directionParticle(to.name)} 갈 수 없어요.\n${from.short} 동물 ${status.count}/${status.target} — 모두 만나면 배지와 함께 열려요!`
+    );
   }
 
   // ─── HUD ────────────────────────────────────────────────
 
   createHud() {
-    const cam = this.cameras.main;
-
-    this.hudPanel = createWoodPanel(this, 132, 48, 246, 82).setScrollFactor(0).setDepth(500);
-    this.hudRegion = this.add.text(24, 20, "", {
-      fontFamily: KOREAN_FONT, fontSize: "14px", color: "#3d2410", fontStyle: "bold"
-    }).setScrollFactor(0).setDepth(501);
-    this.hudCount = this.add.text(24, 40, "", {
-      fontFamily: KOREAN_FONT, fontSize: "11px", color: "#6b4226"
-    }).setScrollFactor(0).setDepth(501);
-
-    // 배지 줄
-    this.badgeTexts = regions.map((region, i) => this.add.text(26 + i * 24, 57, region.emoji, {
-      fontSize: "14px", fontFamily: KOREAN_FONT
-    }).setScrollFactor(0).setDepth(501));
-
-    this.mapButton = createWoodButton(this, cam.width - 148, 28, "🗺 지도", () => this.openWorldMap(), {
-      width: 88,
-      height: 42,
-      fontSize: "13px",
-      depth: 2200
-    }).setName("overworld-map");
-
-    this.dexButton = createWoodButton(this, cam.width - 50, 28, "📖 도감", () => this.openDex(), {
-      width: 92,
-      height: 42,
-      fontSize: "13px",
-      depth: 2200
-    }).setName("overworld-dex");
-
+    this.hud = createWorldHud({
+      onMap: () => this.openWorldMap(),
+      onDex: () => this.openDex()
+    });
+    this.pad = this.hud;
     this.refreshHud();
   }
 
   refreshHud() {
+    if (!this.hud) return;
     const region = regionById[this.currentRegionId];
     const status = regionStatus(region.id);
     const master = masterStatus();
-    this.hudRegion.setText(`${region.emoji} ${region.name}`);
-    this.hudCount.setText(`이 지역 ${status.count}/${status.target} · 전체 도감 ${master.count}/${master.target}`);
-    this.badgeTexts.forEach((text, i) => {
-      text.setAlpha(hasBadge(regions[i].id) ? 1 : 0.28);
+    this.hud.refresh({
+      region,
+      countText: `이 지역 ${status.count}/${status.target} · 전체 도감 ${master.count}/${master.target}`,
+      badgesOn: regions.map((item) => hasBadge(item.id)),
+      master: hasBadge("master")
     });
   }
 
   showRegionBanner(region) {
-    if (this.regionBanner) this.regionBanner.destroy(true);
-    const cam = this.cameras.main;
-    const banner = this.add.container(cam.width / 2, 30).setDepth(600).setScrollFactor(0).setAlpha(0);
-    banner.add(createWoodPanel(this, 0, 0, 230, 38));
-    banner.add(this.add.text(0, 0, `${region.emoji} ${region.name}`, {
-      fontFamily: KOREAN_FONT, fontSize: "15px", color: "#3d2410", fontStyle: "bold"
-    }).setOrigin(0.5));
-    this.regionBanner = banner;
-    this.tweens.add({
-      targets: banner,
-      alpha: 1,
-      duration: 220,
-      yoyo: true,
-      hold: 1400,
-      onComplete: () => {
-        banner.destroy(true);
-        if (this.regionBanner === banner) this.regionBanner = null;
-      }
-    });
+    this.hud?.showBanner(region.name);
   }
 
   // ─── 배지·마스터 축하 ────────────────────────────────────
 
   checkCelebrations() {
+    if (!this.scene.isActive() || this._navigating || this.celebrationRunning) return;
     const newBadgeRegion = findNewBadgeRegion();
     if (newBadgeRegion) {
       this.celebrateBadge(newBadgeRegion);
@@ -483,6 +750,7 @@ export default class OverworldScene extends Phaser.Scene {
     const master = masterStatus();
     if (master.complete && !hasBadge("master")) {
       awardBadge("master");
+      this.refreshHud();
       this.celebrateMaster();
     }
   }
@@ -490,66 +758,74 @@ export default class OverworldScene extends Phaser.Scene {
   celebrateBadge(regionId) {
     awardBadge(regionId);
     this.refreshHud();
+    this.celebrationRunning = true;
     this.encounterLocked = true;
+    this.hud?.releasePad?.();
     this.player.setVelocity(0, 0);
 
     const region = regionById[regionId];
     const gate = this.world.unlockGateFrom(regionId);
+    const nextName = gate ? regionById[gate.to].name : null;
+    const celebrationGen = ++this.celebrationGen;
 
-    const showDialog = () => {
-      const nextName = gate ? regionById[gate.to].name : null;
-      const dialog = createDialogPanel(this, {
-        text: gate
-          ? `🎖 ${region.name} 배지 획득!\n${nextName}${directionParticle(nextName)} 가는 문이 활짝 열렸어요!`
-          : `🎖 ${region.name} 배지 획득!\n모든 지역을 정복했어요!`,
-        width: 540,
-        height: 92
-      });
+    const showReward = () => {
+      if (!this.scene.isActive() || celebrationGen !== this.celebrationGen || this.completionReward) return;
       playEmote(this, this.player.x, this.player.y - 34, "love", { depth: 60 });
-      this.time.delayedCall(2600, () => {
-        dialog.destroy();
-        this.encounterLocked = false;
-        this.checkCelebrations(); // 마스터 판정 이어서
+      this.completionReward = showCompletionReward(this, {
+        regionId,
+        nextRegionName: nextName,
+        onContinue: () => {
+          this.completionReward?.destroy?.();
+          this.completionReward = null;
+          if (!this.scene.isActive() || celebrationGen !== this.celebrationGen) return;
+          this.celebrationRunning = false;
+          this.encounterLocked = false;
+          this.checkCelebrations();
+        }
       });
     };
 
     if (gate) {
-      // 열리는 문을 잠깐 보여주고 돌아옵니다
+      // 실제로 열린 문을 짧게 보여준 뒤 배지 수여 화면을 엽니다.
       const cam = this.cameras.main;
       const gx = gate.x * TILE;
       const gy = (PATH_Y[0] + 1) * TILE;
       cam.stopFollow();
-      cam.pan(gx, gy, 650, "Sine.easeInOut", false, (_c, progress) => {
-        if (progress === 1) {
-          this.cameras.main.flash(240, 255, 236, 160);
-          this.time.delayedCall(750, () => {
-            cam.pan(this.player.x, this.player.y, 650, "Sine.easeInOut", false, (_c2, p2) => {
-              if (p2 === 1) {
+      cam.pan(gx, gy, 500, "Sine.easeInOut", false, (_c, progress) => {
+        if (progress >= 1 && celebrationGen === this.celebrationGen) {
+          this.time.delayedCall(400, () => {
+            if (!this.scene.isActive() || celebrationGen !== this.celebrationGen) return;
+            cam.pan(this.player.x, this.player.y, 500, "Sine.easeInOut", false, (_c2, p2) => {
+              if (p2 >= 1 && celebrationGen === this.celebrationGen) {
                 cam.startFollow(this.player, true, 0.15, 0.15);
-                showDialog();
+                showReward();
               }
             });
           });
         }
       });
     } else {
-      showDialog();
+      showReward();
     }
   }
 
   celebrateMaster() {
+    this.celebrationRunning = true;
     this.encounterLocked = true;
+    this.hud?.releasePad?.();
     this.player.setVelocity(0, 0);
-    const master = masterStatus();
-    const dialog = createDialogPanel(this, {
-      text: `🏆 도감 마스터 달성! (${master.count}/${master.target})\n다섯 서식지의 동물을 모두 도감에 담았어요. 정말 대단한 탐험가예요!`,
-      width: 560,
-      height: 96
-    });
+    const celebrationGen = ++this.celebrationGen;
     playEmote(this, this.player.x, this.player.y - 34, "happy", { depth: 60 });
-    this.time.delayedCall(3400, () => {
-      dialog.destroy();
-      this.encounterLocked = false;
+    this.completionReward = showCompletionReward(this, {
+      regionId: this.currentRegionId,
+      master: true,
+      onContinue: () => {
+        this.completionReward?.destroy?.();
+        this.completionReward = null;
+        if (!this.scene.isActive() || celebrationGen !== this.celebrationGen) return;
+        this.celebrationRunning = false;
+        this.encounterLocked = false;
+      }
     });
   }
 
@@ -567,12 +843,12 @@ export default class OverworldScene extends Phaser.Scene {
       dex: Phaser.Input.Keyboard.KeyCodes.C,
       map: Phaser.Input.Keyboard.KeyCodes.M
     });
-    this.pad = createVirtualPad(this);
   }
 
   openDex() {
-    if (this._navigating || !this.player) return;
+    if (this._navigating || this.celebrationRunning || !this.player) return;
     this._navigating = true;
+    this.hud?.releasePad?.();
     this.player.setVelocity(0, 0);
     this.scene.start("DexScene", {
       from: "OverworldScene",
@@ -582,10 +858,11 @@ export default class OverworldScene extends Phaser.Scene {
   }
 
   openWorldMap() {
-    if (this._navigating) return;
+    if (this._navigating || this.celebrationRunning) return;
     this._navigating = true;
+    this.hud?.releasePad?.();
     this.player?.setVelocity(0, 0);
-    this.scene.start("WorldMapScene", { selectedRegionId: this.currentRegionId });
+    this.scene.start("WorldMapScene", { currentRegionId: this.currentRegionId, selectedRegionId: this.currentRegionId });
   }
 
   update(_time, delta) {
@@ -597,7 +874,12 @@ export default class OverworldScene extends Phaser.Scene {
       this.openWorldMap();
       return;
     }
-    if (!this.player || this.encounterLocked || this._navigating) return;
+    if (!this.player) return;
+    if (this.encounterLocked || this._navigating) {
+      this.hud?.releasePad?.();
+      if (this.encounterLocked) this.syncPlayerSurface(false);
+      return;
+    }
 
     let vx = 0;
     let vy = 0;
@@ -606,14 +888,21 @@ export default class OverworldScene extends Phaser.Scene {
     if (this.cursors.up.isDown || this.wasd.up.isDown) vy -= 1;
     if (this.cursors.down.isDown || this.wasd.down.isDown) vy += 1;
 
-    const pad = this.pad?.getVector?.() || { x: 0, y: 0 };
-    vx += pad.x;
-    vy += pad.y;
+    const pad = this.pad?.getVector?.();
+    if (pad) {
+      vx += pad.x;
+      vy += pad.y;
+    }
 
-    if (vx !== 0 || vy !== 0) {
-      const len = Math.hypot(vx, vy) || 1;
-      vx = (vx / len) * PLAYER_SPEED;
-      vy = (vy / len) * PLAYER_SPEED;
+    const speed = this.playerFootInWater() ? SWIM_SPEED : PLAYER_SPEED;
+    const len = Math.hypot(vx, vy);
+    // 스틱 민 만큼만 걷고, 합친 입력이 1을 넘을 때만 길이를 잘라 대각선 가속을 막습니다.
+    if (len > 1) {
+      vx = (vx / len) * speed;
+      vy = (vy / len) * speed;
+    } else if (len > 0) {
+      vx *= speed;
+      vy *= speed;
     }
 
     // 발 위치 기준 타일 충돌
@@ -624,16 +913,15 @@ export default class OverworldScene extends Phaser.Scene {
 
     this.player.setVelocity(vx, vy);
 
-    if (vx === 0 && vy === 0) {
-      this.player.anims.play(`idle-${this.lastDir}`, true);
-    } else {
+    const moving = vx !== 0 || vy !== 0;
+    if (moving) {
       if (Math.abs(vx) > Math.abs(vy)) {
         this.lastDir = vx < 0 ? "left" : "right";
       } else {
         this.lastDir = vy < 0 ? "up" : "down";
       }
-      this.player.anims.play(`walk-${this.lastDir}`, true);
     }
+    this.syncPlayerSurface(moving);
 
     // 조우 무장 — 마커에서 한 번 떨어져야 다시 조우할 수 있음
     for (const zone of this.encounterZones) {
