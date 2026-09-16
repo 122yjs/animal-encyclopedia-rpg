@@ -19,6 +19,7 @@ import {
   getAnimalFrame,
   isFlying
 } from "../world/AnimalSprites.js";
+import { battleBackdropFor } from "../world/BattleBackdrops.js";
 import { KOREAN_FONT, playEmote } from "../ui/UiHelpers.js";
 import {
   createButton,
@@ -286,6 +287,7 @@ export default class OverworldScene extends Phaser.Scene {
       this.world = new WorldMap(this, { isGateOpen });
       this.world.build();
       this.createPlayer();
+      this.prefetchBattleBackdrops();
       this.createNpcs();
       this.createEncounters();
       this.createGateSensors();
@@ -356,6 +358,24 @@ export default class OverworldScene extends Phaser.Scene {
     this.syncPlayerSurface(false);
 
     this.currentRegionId = regionAtTile(Math.floor(startX / TILE)).id;
+  }
+
+  /** 현재 지역에서 만날 수 있는 배틀 배경을 미리 받아 둡니다 — 조우할 때 새 요청 없이 바로 씁니다. */
+  prefetchBattleBackdrops() {
+    const region = regionById[this.currentRegionId];
+    if (!region) return;
+    const seen = new Set();
+    let queued = false;
+    region.spawns.forEach((spawn) => {
+      // 특별한 환경은 동물마다 사막·고산·극지 배경이 달라 하나씩 받아 둡니다.
+      const spec = battleBackdropFor(region.id, spawn.id);
+      if (seen.has(spec.key) || this.textures.exists(spec.key)) return;
+      seen.add(spec.key);
+      this.load.image(spec.key, spec.url);
+      queued = true;
+    });
+    // 이미 받는 중이면 다음 배치에 합쳐집니다 — 탐험은 배경 다운로드를 기다리지 않습니다.
+    if (queued) this.load.start();
   }
 
   /** 발밑 타일(발 Y = sprite.y+12)이 물이면 수영입니다. */
@@ -952,6 +972,7 @@ export default class OverworldScene extends Phaser.Scene {
       this.currentRegionId = regionNow.id;
       this.refreshHud();
       this.showRegionBanner(regionNow);
+      this.prefetchBattleBackdrops();
     }
   }
 }

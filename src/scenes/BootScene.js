@@ -1,12 +1,11 @@
 // 에셋 로드 → 타이틀로 이동
-// 배경은 지역당 한 장 그린 detailed-pixel 이미지(768×1088 × 5장)를 그대로 씁니다.
+// 타이틀에 필요한 그림만 받습니다 — 지역 배경(768×1088 × 5장)과 동물 아틀라스는 월드맵이 받습니다.
 // Sprout Lands 시트는 타이틀 장식·캐릭터 애니메이션·잠긴 문 울타리에 남은 것만 16px로 자릅니다.
 import Phaser from "phaser/dist/phaser-arcade-physics.min.js";
+import titleParkUrl from "../assets/detailed-pixel/title-park.webp?url";
 import { KOREAN_FONT } from "../ui/UiHelpers.js";
-import { REGION_ART } from "../world/WorldMap.js";
 
 const TITLE_ART_KEY = "title-park";
-import { preloadAnimalAtlases, createAnimalTextures } from "../world/AnimalSprites.js";
 
 export default class BootScene extends Phaser.Scene {
   constructor() {
@@ -40,9 +39,8 @@ export default class BootScene extends Phaser.Scene {
 
     const base = "assets/sprout-lands";
 
-    // ── 월드 배경 (지역당 한 장 768×1088) + 타이틀 배경 ──
-    REGION_ART.forEach(({ key, url }) => this.load.image(key, url));
-    this.load.image(TITLE_ART_KEY, "assets/detailed-pixel/title-park.webp");
+    // ── 타이틀 배경 ──
+    this.load.image(TITLE_ART_KEY, titleParkUrl);
 
     // ── 잠긴 문 울타리 (16×16) — 문이 닫힐 때 길을 막는 조각 ──
     this.load.spritesheet("tiles-fence", `${base}/sprites/Tilesets/Fences.png`, {
@@ -65,12 +63,10 @@ export default class BootScene extends Phaser.Scene {
     this.load.spritesheet("npc-cow", `${base}/sprites/Characters/Free Cow Sprites.png`, {
       frameWidth: 32, frameHeight: 32
     });
-    preloadAnimalAtlases(this);
 
   }
 
   create() {
-    createAnimalTextures(this);
     this.createPlayerAnims();
     this.createCelebrationAnims();
     this.createFailureAnims();

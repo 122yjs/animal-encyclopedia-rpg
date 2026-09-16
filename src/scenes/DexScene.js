@@ -12,8 +12,7 @@ import {
   disposePhotos
 } from "../ui/ScreenUi.js";
 import "../ui/dex-screen.css";
-
-const FOREST_URL = new URL(`${import.meta.env.BASE_URL}assets/detailed-pixel/dex-forest.webp`, document.baseURI).href;
+import forestArt from "../assets/detailed-pixel/dex-forest.webp?url";
 
 function originLabel(from) {
   if (from === "OverworldScene") return "탐험으로";
@@ -53,7 +52,7 @@ export default class DexScene extends Phaser.Scene {
       className: "dex-screen",
       onEscape: () => this.onEscape()
     });
-    this.ui.root.style.setProperty("--dex-forest", `url("${FOREST_URL}")`);
+    this.ui.root.style.setProperty("--dex-forest", `url("${forestArt}")`);
     this.buildChrome();
     this.renderRegion();
   }

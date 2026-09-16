@@ -15,7 +15,7 @@ npm run dev
 
 배경·동물·지도 그림은 잎·돌·물결 결이 살아 있는 고밀도 픽셀아트입니다. 학습용 실제 사진은 픽셀화하지 않고 원본 비율과 부드러운 표시를 유지합니다.
 
-- **지역별 전투 배경:** 마을·숲·강가·바다·사막·고산·극지 7종을 `public/assets/detailed-pixel/battle-*.webp`로 두고 `src/world/BattleBackdrops.js`가 고릅니다. 산양은 고산, 북극곰·북극여우·펭귄은 극지를 사용합니다. 그림을 줄일 때는 선형 보간을 써서 잎·돌 결이 뭉개지지 않게 합니다.
+- **지역별 전투 배경:** 마을·숲·강가·바다·사막·고산·극지 7종을 `src/assets/detailed-pixel/battle-*.webp`로 두고 `src/world/BattleBackdrops.js`가 고릅니다. 산양은 고산, 북극곰·북극여우·펭귄은 극지를 사용합니다. 그림을 줄일 때는 선형 보간을 써서 잎·돌 결이 뭉개지지 않게 합니다.
 - **시작 화면:** 전용 공원 그림(`title-park.webp`)을 화면 전체에 채우고, 위쪽에는 제목 카드, 가운데에는 시작·도감 버튼, 아래에는 안내 문구 판을 둡니다. 안내 문구는 밝은 판 위에 올려 배경 위에서도 읽힙니다.
 - **읽기 UI:** 시작 화면·월드맵·도감·퀴즈의 글과 버튼은 `#ui-root`의 네이티브 DOM(`src/ui/ScreenUi.js`)입니다. 종이색 카드와 단단한 테두리·그림자를 사용합니다.
 - **첫 화면과 캐릭터:** 시작 화면에서 「모험 시작」 또는 「이어서 모험」을 눌러야 지역 선택 지도로 이동합니다. 저장 기록이 있어도 자동 진입하지 않습니다. 시작 화면에서 도감을 열고 돌아올 수 있으며 Enter·Space도 지원합니다. 플레이어의 기본 몸·색과 닭·소는 Sprout Lands 원본을 유지하고, 포획 축하에는 원본 Teemo 이모트 시트의 32×32 두 프레임을 잘라 재사용합니다.
@@ -35,13 +35,41 @@ npm run dev
 
 ## 배포
 
-`main` 브랜치에 push하면 GitHub Actions가 빌드하고 GitHub Pages에 자동 배포합니다. 이번 비주얼 갱신은 그 배포나 출시 검수를 대신하지 않습니다.
+운영 주소: **https://animal-encyclopedia-rpg.pages.dev/** (Cloudflare Pages 무료 플랜, 정적 파일만 제공).
 
-`npm run build` 결과는 `dist/`이며 상대 경로(`base: "./"`)를 사용합니다. 출처 페이지는 `public/credits.html`에서 복사되어 배포 경로의 `credits.html`로 제공됩니다. 저장 형식을 바꾸지 않았으므로 이전 검증 빌드로 되돌릴 때도 같은 오리진의 수집 기록을 유지합니다.
+main 브랜치 push와 수동 실행(`workflow_dispatch`)은 `.github/workflows/deploy-cloudflare.yml` GitHub Actions 워크플로가 담당합니다. `npm ci`로 설치한 뒤 기존 `npm run deploy`를 그대로 실행해 같은 `animal-encyclopedia-rpg` 프로젝트에 업로드하므로 로컬 수동 배포와 CI가 같은 빌드·배포 경로를 사용합니다. Cloudflare Pages의 Git 연동(native Git integration)을 새로 연결한 것이 아니라 저장소 Actions가 Wrangler로 직접 업로드(direct upload)하는 방식이며, 운영 주소는 그대로 **https://animal-encyclopedia-rpg.pages.dev/**입니다. 워크플로는 `contents: read` 권한만 사용하고, 저장소 Secrets의 `CLOUDFLARE_API_TOKEN`·`CLOUDFLARE_ACCOUNT_ID`를 deploy 단계에서만 환경 변수로 주입합니다. `production` 동시성 그룹은 진행 중인 업로드를 취소하지 않습니다(`cancel-in-progress: false`).
+
+배포 성공 여부와 실행 기록은 GitHub 저장소의 Actions → Deploy Cloudflare Pages에서 확인합니다.
+
+```bash
+# 다른 기기에서 처음 배포할 때만 Cloudflare 계정 인증
+npx --yes wrangler@4.131.2 login
+npm run deploy
+```
+
+`deploy`는 빌드 성공 후 `animal-encyclopedia-rpg` 프로젝트의 production 브랜치 `main`에 업로드합니다. 로컬 수동 배포의 인증 정보는 Wrangler 사용자 설정에만 저장하며 저장소에 넣지 않습니다. 프로젝트는 이미 생성되어 있으므로 다시 만들 필요가 없습니다.
+
+기존 GitHub Pages 자동 배포 워크플로는 GitHub에서 비활성화했고 저장소의 이전 배포 YAML도 제거했습니다. 기존 GitHub Pages 사이트 자체는 이전 기록 확인을 위해 남겨 두었습니다.
+
+`npm run build` 결과는 `dist/`이며 상대 경로(`base: "./"`)를 사용합니다. 루트의 `credits.html`도 Vite로 빌드되며 Cloudflare에서 `/credits`로 제공됩니다.
+
+저장 키·형식은 그대로지만 localStorage는 오리진별입니다. 기존 GitHub Pages·미리보기 주소의 수집 기록은 새 `pages.dev` 주소로 자동 이전되지 않습니다. 기존 주소의 데이터는 삭제하지 않았습니다.
 
 ## 에셋 크레딧
 
 - Sprout Lands by Cup Nooble — 흰색 긴 귀 플레이어·수영 자세·닭·소·잠긴 문 울타리, Teemo 이모트 시트의 축하 두 프레임과 실패 세 프레임, Setting menu와 Square Buttons의 UI 테두리 두 조각, Special Icons의 `(0,32)` 별 배지와 All Icons의 `(224,16)` 왕관을 16×16으로 잘라 사용합니다. 비상업 프로젝트용 라이선스 원문은 `public/assets/sprout-lands/sprites/read_me.txt`입니다.
-- 고밀도 배경·지도: `public/assets/detailed-pixel/` — 지역 전투 배경 7장, 시작 화면 1장, 여행 지도·도감 숲, 지역 지도 5장. 실제 생성 기록은 [sprout-soft/provenance.json](artifacts/visual-patch/g6/source/sprout-soft/provenance.json)에 있습니다. 사용 도구는 내장 `image_gen.imagegen`이고 정확한 하위 모델 값은 `null`입니다. 이 source 경로는 `artifacts/` 규칙에 따라 Git ignore 대상입니다.
+- 고밀도 배경·지도: `src/assets/detailed-pixel/` — 지역 전투 배경 7장, 시작 화면 1장, 여행 지도·도감 숲, 지역 지도 5장. 실제 생성 기록은 [sprout-soft/provenance.json](artifacts/visual-patch/g6/source/sprout-soft/provenance.json)에 있습니다. 사용 도구는 내장 `image_gen.imagegen`이고 정확한 하위 모델 값은 `null`입니다. 이 source 경로는 `artifacts/` 규칙에 따라 Git ignore 대상입니다.
 - 동물 그림: `public/assets/generated/animals/` — 원작 아틀라스 5장을 그대로 쓰고, `src/world/AnimalSprites.js`가 48×48 두 포즈로 잘라 담습니다.
-- 동물 사진의 상세 출처는 각 원본 데이터의 출처 정보를 따릅니다. 목록: [credits.html](public/credits.html)
+- 동물 사진의 상세 출처는 각 원본 데이터의 출처 정보를 따릅니다. 목록: [credits.html](credits.html)
+
+
+## 이미지 로딩과 배포
+
+- 배경·지도 15장은 원본 해상도를 유지한 손실 WebP입니다. 보존된 G6 원본 29,880,628바이트 → 배포본 5,304,376바이트(약 82% 감소). 동물 아틀라스와 작은 캐릭터 시트는 그대로 유지합니다.
+- Boot는 시작 배경과 작은 캐릭터 시트만 로드합니다. 월드맵에서 지역 배경 5장과 동물 아틀라스를 준비하고, 준비가 끝난 뒤 탐험으로 진입합니다. 다운로드 실패 시 다음 시도에서 누락된 그림만 다시 받습니다.
+- 지역 진입·이동 시 해당 전투 배경을 미리 받습니다. 특별한 환경은 사막·고산·극지 3종이며, 전투 씬의 필요 시 로딩도 유지합니다.
+- `src/assets/detailed-pixel/`의 그림은 Vite `?url` import로 내용 해시가 포함된 파일명을 사용합니다. `credits.html`도 빌드 입력에 포함해 같은 이미지 URL을 사용합니다.
+- Cloudflare Pages의 `public/_headers`로 `/versioned/*`(Vite 해시 산출물)는 `public, max-age=31536000, immutable`, `/assets/*`(고정 이름 파일)는 `public, max-age=0, must-revalidate`, HTML은 `no-cache`를 적용했습니다. 경로를 분리해 캐시 헤더 규칙이 겹치지 않습니다. `vite preview`는 Cloudflare 헤더를 적용하지 않는 로컬 확인용입니다.
+- 로컬 production preview의 Chromium 모의 측정(10Mbps·100ms·CPU 4배 감속, 빈 캐시, 1회): 시작 버튼 표시 1.52초, 첫 화면 전송량 817,161바이트. 실제 휴대폰·동시 접속 측정이 아니며 기존 원격 미리보기와 서버 조건은 다릅니다. 측정 기록은 `artifacts/performance-startup.json`, 이미지 비교는 `artifacts/performance-image-quality.json`, 로딩 재시도·재진입 검증은 `artifacts/performance-loading-smoke.json`에 남깁니다(`artifacts/`는 Git ignore 대상).
+
+- Cloudflare 운영 주소 검증(10Mbps·100ms·CPU 4배 감속, 각 1회): 첫 접속 2.75초·814,230바이트, 캐시 재접속 0.49초·2,420바이트. 시작→지도→탐험→조우와 전투 배경 재사용, 해시 파일 19개 캐시 헤더, 출처 그림 15개를 확인했습니다. 별도 임시 preview에서 버전 1→2 배포 후 일반 재접속 시 새 HTML·새 해시 파일만 받고 기존 JS는 캐시에서 재사용하는 것을 확인한 뒤 preview를 제거했습니다. 기록: `artifacts/cloudflare-production-verification.json`. 실제 휴대폰·동시 접속 부하 실험은 아닙니다.

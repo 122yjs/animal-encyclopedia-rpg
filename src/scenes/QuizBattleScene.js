@@ -564,7 +564,9 @@ export default class QuizBattleScene extends Phaser.Scene {
     const owner = this.groundFill;
     const key = spec.key;
     const place = () => {
-      if (owner.active === false || this.textures.exists(key) === false) return;
+      // 탐험 프리페치가 아직 도는 중이거나, 재시작으로 무대가 바뀐 뒤 늦게 온 콜백은 화면을 건드리지 않습니다.
+      if (owner !== this.groundFill || owner.active === false) return;
+      if (this.textures.exists(key) === false) return;
       this.textures.get(key).setFilter(Phaser.Textures.FilterMode.LINEAR);
       this.backdrop?.destroy();
       this.backdrop = this.add.image(0, 0, key).setOrigin(0.5).setDepth(0).setName("battle-backdrop");
@@ -574,6 +576,7 @@ export default class QuizBattleScene extends Phaser.Scene {
       place();
       return;
     }
+    // 탐험 씬 프리페치가 끝나지 않았으면 여기서 직접 받습니다 — 조우가 빨라도 배경은 결국 뜹니다.
     this.load.image(key, spec.url);
     this.load.once(Phaser.Loader.Events.COMPLETE, place);
     this.load.start();

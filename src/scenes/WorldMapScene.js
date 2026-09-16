@@ -1,12 +1,20 @@
 // 월드맵 허브 — 지형 지도에서 현재 위치와 목적지를 구분해 탐험합니다.
 import Phaser from "phaser/dist/phaser-arcade-physics.min.js";
+import worldMapUrl from "../assets/detailed-pixel/world-map.webp?url";
 import { regions } from "../data/regions.js";
 import { createScreen, createElement, createButton } from "../ui/ScreenUi.js";
 import { masterStatus, regionStatus, hasBadge } from "../systems/ProgressStore.js";
+import { REGION_ART } from "../world/WorldMap.js";
+import { GENERATED_ANIMAL_ATLASES, preloadAnimalAtlases, createAnimalTextures } from "../world/AnimalSprites.js";
 import "../ui/navigation-screen.css";
 
-const MAP_ART = new URL(`${import.meta.env.BASE_URL}assets/detailed-pixel/world-map.webp`, document.baseURI).href;
 const PLAYER_ART = new URL(`${import.meta.env.BASE_URL}assets/sprout-lands/sprites/Characters/Basic Charakter Spritesheet.png`, document.baseURI).href;
+
+/** 탐험(오버월드) 전에 받아 둘 그림 — 지역 배경 5장 + 동물 아틀라스 5장. */
+const EXPLORATION_KEYS = [
+  ...REGION_ART.map(({ key }) => key),
+  ...GENERATED_ANIMAL_ATLASES.map((atlas) => atlas.key)
+];
 
 const ORDER_LABELS = {
   around: "우리 주변",
@@ -109,6 +117,7 @@ export default class WorldMapScene extends Phaser.Scene {
 
   create() {
     this._starting = false;
+    this.explorationLoad = null;
     this.traveling = false;
     this.travelGen = 0;
     this.travelRaf = 0;
@@ -157,7 +166,7 @@ export default class WorldMapScene extends Phaser.Scene {
     const art = document.createElement("img");
     art.className = "nav-map-art";
     art.id = "world-map-art";
-    art.src = MAP_ART;
+    art.src = worldMapUrl;
     art.alt = "마을, 숲, 강과 호수, 바다, 사막·고산·북쪽 빙하가 이어진 탐험 지도";
     art.width = 1672;
     art.height = 941;
@@ -276,6 +285,9 @@ export default class WorldMapScene extends Phaser.Scene {
 
     this.refreshSelection();
     this.fitMapStage();
+
+    // 지역 배경 5장과 동물 아틀라스 5장은 지도에서 백그라운드로 받습니다 (타이틀은 기다리지 않습니다).
+    this.ensureExplorationAssets();
   }
 
   teardownMap() {
@@ -604,6 +616,47 @@ export default class WorldMapScene extends Phaser.Scene {
     this.stopButtons.find((button) => button.dataset.regionId === this.selectedRegionId)?.focus({ preventScroll: true });
   }
 
+  /** 탐험 그림(지역 배경 5장 + 동물 아틀라스 5장)이 모두 준비됐는지 — 아직이거나 실패했으면 false. */
+  readyForExploration() {
+    return EXPLORATION_KEYS.every((key) => this.textures.exists(key));
+  }
+
+  /**
+   * 탐험 그림을 받습니다 — 이미 받은 텍스처는 Phaser가 키 충돌로 건너뜁니다.
+   * 받는 중이면 같은 약속을 돌려주어 같은 파일을 두 번 받지 않습니다.
+   */
+  ensureExplorationAssets() {
+    if (this.explorationLoad) return this.explorationLoad;
+    REGION_ART.forEach(({ key, url }) => this.load.image(key, url));
+    preloadAnimalAtlases(this);
+    this.explorationLoad = new Promise((resolve) => {
+      this.load.once("complete", () => {
+        const ready = this.readyForExploration();
+        if (ready) createAnimalTextures(this);
+        else this.explorationLoad = null; // 실패 — 다음 시도는 빠진 그림만 다시 받습니다
+        resolve(ready);
+      });
+      this.load.start();
+    });
+    return this.explorationLoad;
+  }
+
+  /**
+   * 탐험을 시작하기 전에 그림을 기다립니다. 기다리는 동안은 상태를 보여주고 조작을 잠급니다.
+   * 못 받으면 지도를 다시 쓸 수 있게 되돌리고 false — 그림 없는 화면으로 넘어가지 않습니다.
+   */
+  async prepareExploration() {
+    if (this.readyForExploration()) return true;
+    this.setControlsDisabled(true);
+    this.primaryButton.textContent = "탐험 그림 준비 중…";
+    this.travelStatus.textContent = "탐험 그림을 준비하고 있어요";
+    if (await this.ensureExplorationAssets()) return true;
+    this.setControlsDisabled(false);
+    this.refreshSelection();
+    this.travelStatus.textContent = "탐험 그림을 받지 못했어요. 잠시 뒤 다시 시도해 주세요";
+    return false;
+  }
+
   async beginRegion(regionId) {
     if (this._starting || this.traveling || !validRegionId(regionId)) return;
     this.closeOrderDialog();
@@ -613,7 +666,11 @@ export default class WorldMapScene extends Phaser.Scene {
       const moved = await this.animateTravel(origin, destination);
       if (!moved || !this.ui?.root?.isConnected) return;
     }
-    this._starting = true;
+    this._starting = true; // 준비·전환 중에는 지도 조작을 잠급니다
+    if (!(await this.prepareExploration())) {
+      this._starting = false;
+      return;
+    }
     sessionCurrentRegionId = destination;
     this.currentRegionId = destination;
     this.ui?.destroy();

@@ -1,0 +1,24 @@
+# Cloudflare Pages가 배포 루트(dist/)에서 읽는 응답 헤더입니다. vite build가 public/을 그대로 복사합니다.
+# 경로 패턴이 겹치면 같은 이름의 헤더 값이 쉼표로 합쳐지므로(예: no-cache, public, max-age=…),
+# Cache-Control을 거는 규칙은 접두사가 서로 겹치지 않게 나눕니다: /versioned/* ↔ /assets/* ↔ HTML.
+
+# 내용 해시가 붙은 빌드 산출물만 장기 immutable 캐시 (vite.config.js assetsDir: "versioned")
+/versioned/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# public/에서 이름 그대로 복사되는 해시 없는 안정 자산은 매번 재검증
+/assets/*
+  Cache-Control: public, max-age=0, must-revalidate
+
+# HTML은 배포 직후 바로 반영되도록 재검증 (Pages는 확장자 없는 URL로도 연결합니다)
+/
+  Cache-Control: no-cache
+
+/index.html
+  Cache-Control: no-cache
+
+/credits
+  Cache-Control: no-cache
+
+/credits.html
+  Cache-Control: no-cache

@@ -5,6 +5,11 @@
 // 필수 배경이 빠지면 로드 오류를 드러내며 저품질 대체 그림으로 숨기지 않습니다.
 import Phaser from "phaser/dist/phaser-arcade-physics.min.js";
 import { TILE, MAP_W, MAP_H, PATH_Y, regions, gates } from "../data/regions.js";
+import aroundArt from "../assets/detailed-pixel/overworld-around.webp?url";
+import landArt from "../assets/detailed-pixel/overworld-land.webp?url";
+import freshwaterArt from "../assets/detailed-pixel/overworld-freshwater.webp?url";
+import seaArt from "../assets/detailed-pixel/overworld-sea.webp?url";
+import specialArt from "../assets/detailed-pixel/overworld-special.webp?url";
 import { KOREAN_FONT } from "../ui/UiHelpers.js";
 import layout from "../data/world-layout.json";
 
@@ -13,10 +18,18 @@ const REGION_W = (MAP_W * TILE) / regions.length; // 지역 한 장이 덮는 �
 const REGION_H = MAP_H * TILE;                    // 1088px (34칸)
 const BARRIER_FRAME = 4;                          // Fences 시트의 세로 울타리 한 칸
 
+const REGION_URLS = {
+  around: aroundArt,
+  land: landArt,
+  freshwater: freshwaterArt,
+  sea: seaArt,
+  special: specialArt
+};
+
 /** 지역 배경 이미지 — 배열 순서가 곧 가로 위치입니다 (0 · 768 · 1536 · 2304 · 3072). */
 export const REGION_ART = regions.map((region, index) => ({
   key: `overworld-${region.id}`,
-  url: `assets/detailed-pixel/overworld-${region.id}.webp`,
+  url: REGION_URLS[region.id],
   x: index * REGION_W
 }));
 

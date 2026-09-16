@@ -4,3 +4,4 @@ dist/
 artifacts/
 graphify-out/
 visual-evidence/
+.wrangler/
