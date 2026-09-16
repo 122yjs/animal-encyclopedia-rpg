@@ -1,0 +1,21 @@
+{
+  "worktree": {
+    "setup": "npm ci || npm install",
+    "teardown": "rm -rf dist/.cache || true"
+  },
+  "scripts": {
+    "dev": {
+      "type": "service",
+      "command": "npm run dev -- --port $PASEO_PORT --host 127.0.0.1",
+      "port": 5173
+    },
+    "build": {
+      "command": "npm run build"
+    },
+    "preview": {
+      "type": "service",
+      "command": "npm run preview -- --port $PASEO_PORT --host 127.0.0.1",
+      "port": 4173
+    }
+  }
+}
