@@ -247,9 +247,66 @@
   outline-offset: 2px;
 }
 
+/* 보기 — RPG 메뉴처럼 번호 칩 + 초점 때 ▶ 커서 */
 .battle-screen .battle-option {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
   width: 100%;
+  padding-left: 12px;
   text-align: left;
+  word-break: keep-all;
+}
+
+.battle-screen .battle-option[data-index]::before {
+  content: attr(data-index);
+  display: inline-grid;
+  flex: 0 0 30px;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 2px solid var(--ui-deep);
+  border-radius: 4px;
+  background: var(--ui-mint);
+  box-shadow: inset 0 -3px 0 rgb(92 83 106 / .18), 0 2px 0 var(--ui-wood-shadow);
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--ui-ink);
+}
+
+.battle-screen .battle-option[data-index]::after {
+  content: "";
+  position: absolute;
+  left: -14px;
+  top: 50%;
+  width: 0;
+  height: 0;
+  border-block: 7px solid transparent;
+  border-left: 9px solid var(--ui-deep);
+  translate: 0 -50%;
+  opacity: 0;
+}
+
+.battle-screen .battle-option:hover:not(:disabled),
+.battle-screen .battle-option:focus-visible {
+  background: var(--ui-lime);
+}
+
+.battle-screen .battle-option:hover:not(:disabled)::before,
+.battle-screen .battle-option:focus-visible::before {
+  background: var(--ui-paper);
+}
+
+.battle-screen .battle-option:hover:not(:disabled)::after,
+.battle-screen .battle-option:focus-visible::after {
+  opacity: 1;
+}
+
+.battle-screen .battle-option:disabled[data-locked="1"] {
+  background: var(--ui-honey);
+  color: var(--ui-ink);
 }
 
 /* 전투: 위 전장 사각형 + 아래 고정 대화 독. 화면은 스크롤하지 않음 */
@@ -461,6 +518,143 @@
   gap: 10px;
 }
 
+/* 단서 — 작은 픽셀 이름표 */
+.battle-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.battle-fact {
+  display: inline-flex;
+  align-items: stretch;
+  max-width: 100%;
+  border: 2px solid var(--ui-deep);
+  border-radius: 4px;
+  background: var(--ui-paper);
+  box-shadow: 0 2px 0 var(--ui-wood-shadow);
+  font-size: 13px;
+  line-height: 1.4;
+  overflow: hidden;
+}
+
+.battle-fact__label {
+  flex: 0 0 auto;
+  padding: 2px 7px;
+  background: var(--ui-honey);
+  border-right: 2px solid var(--ui-deep);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.battle-fact__value {
+  min-width: 0;
+  padding: 2px 8px;
+  color: var(--ui-muted);
+  overflow-wrap: anywhere;
+  word-break: keep-all;
+}
+
+/* 질문 — 말풍선 앞 「?」 픽셀 배지 */
+.battle-question {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.45;
+  color: var(--ui-ink);
+}
+
+.battle-question::before {
+  content: "?";
+  display: inline-grid;
+  flex: 0 0 30px;
+  place-items: center;
+  height: 30px;
+  margin-top: 1px;
+  border: 2px solid var(--ui-deep);
+  border-radius: 4px;
+  background: var(--ui-rose);
+  box-shadow: 0 2px 0 var(--ui-wood-shadow);
+  color: var(--ui-paper);
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1;
+  text-shadow: 1px 1px 0 var(--ui-deep);
+}
+
+.battle-dock .battle-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  gap: 10px 22px;
+  padding-left: 14px;
+}
+
+/* 대화창 — 말이 끝난 카드에는 깜빡이는 ▼ 넘김 표시 */
+.battle-dock .ui-card {
+  position: relative;
+}
+
+.battle-dock .ui-card:not(:has(.ui-actions, .ui-button))::after {
+  content: "";
+  position: absolute;
+  right: 14px;
+  bottom: 8px;
+  width: 0;
+  height: 0;
+  border-inline: 6px solid transparent;
+  border-top: 7px solid var(--ui-deep);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .battle-dock .ui-card:not(:has(.ui-actions, .ui-button))::after {
+    animation: battle-caret 0.9s steps(2, end) infinite;
+  }
+}
+
+@keyframes battle-caret {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 3px; }
+}
+
+@media (max-width: 679px) {
+  .battle-question-card {
+    grid-template-columns: 96px minmax(0, 1fr);
+    column-gap: 12px;
+    align-items: start;
+  }
+
+  .battle-question-card > .ui-photo {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    width: 100%;
+    aspect-ratio: 1;
+  }
+
+  .battle-question-card > .battle-facts,
+  .battle-question-card > .battle-question {
+    grid-column: 2;
+  }
+
+  .battle-question-card > .battle-options {
+    grid-column: 1 / -1;
+  }
+
+  .battle-question {
+    font-size: 18px;
+  }
+
+  .battle-question::before {
+    flex-basis: 26px;
+    height: 26px;
+    font-size: 16px;
+  }
+}
+
 .battle-question-card > .ui-photo {
   width: min(100%, 220px);
   max-height: none;
@@ -495,4 +689,13 @@
   .battle-plate.is-hit .battle-gauge {
     animation: none;
   }
+}
+
+/* 작은 문제 사진에서는 돋보기 아이콘도 줄여 사진을 가리지 않게 합니다 */
+.battle-question-card .ui-photo__expand svg {
+  right: 4px;
+  bottom: 4px;
+  width: 24px;
+  height: 24px;
+  padding: 3px;
 }

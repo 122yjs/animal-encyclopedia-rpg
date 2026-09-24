@@ -1307,13 +1307,13 @@ export default class QuizBattleScene extends Phaser.Scene {
   }
 
   /** 현재 문제의 정답이 새지 않는 관찰 요약을 만듭니다 */
-  buildSafeFacts(hintKey) {
+  safeFactParts(hintKey) {
     const facts = this.quickFacts;
     const parts = [];
-    if (hintKey !== "habitat") parts.push(`사는 곳: ${facts.habitat}`);
-    if (hintKey !== "lifestyle") parts.push(`움직임: ${facts.movement}`);
-    if (hintKey !== "appearance" && hintKey !== "adaptation") parts.push(`특징: ${facts.feature}`);
-    return parts.join("  ·  ");
+    if (hintKey !== "habitat") parts.push(["사는 곳", facts.habitat]);
+    if (hintKey !== "lifestyle") parts.push(["움직임", facts.movement]);
+    if (hintKey !== "appearance" && hintKey !== "adaptation") parts.push(["특징", facts.feature]);
+    return parts;
   }
 
   showQuestion() {
@@ -1327,12 +1327,18 @@ export default class QuizBattleScene extends Phaser.Scene {
     const dock = this.appendCombatDock();
     const card = createElement("div", "ui-card battle-question-card");
     this.mountPhoto(card);
-    const fact = createElement("p", "ui-muted", `${this.buildSafeFacts(q.hintKey)}`);
+    const fact = createElement("ul", "battle-facts");
     fact.dataset.name = "fact-copy";
-    const question = createElement("p", "battle-copy", q.text);
+    fact.setAttribute("aria-label", "단서");
+    this.safeFactParts(q.hintKey).forEach(([label, value]) => {
+      const chip = createElement("li", "battle-fact");
+      chip.append(createElement("span", "battle-fact__label", label), createElement("span", "battle-fact__value", value));
+      fact.append(chip);
+    });
+    const question = createElement("p", "battle-copy battle-question", q.text);
     question.dataset.name = "question-copy";
     card.append(fact, question);
-    const actions = createElement("div", "ui-actions");
+    const actions = createElement("div", "ui-actions battle-options");
     q.options.forEach((option, index) => {
       const btn = this.gate(this.button(option, () => {
         btn.dataset.locked = "1";
