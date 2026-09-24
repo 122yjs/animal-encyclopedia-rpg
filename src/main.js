@@ -6,6 +6,7 @@ import WorldMapScene from "./scenes/WorldMapScene.js";
 import OverworldScene from "./scenes/OverworldScene.js";
 import QuizBattleScene from "./scenes/QuizBattleScene.js";
 import DexScene from "./scenes/DexScene.js";
+import SortGameScene from "./scenes/SortGameScene.js";
 import "./ui/screen-ui.css";
 
 const config = {
@@ -28,8 +29,8 @@ const config = {
     mode: Phaser.Scale.RESIZE,
     autoCenter: Phaser.Scale.CENTER_BOTH
   },
-  // 부팅 → 타이틀 → 월드맵(지역 지도) → 오버월드 → 배틀/도감
-  scene: [BootScene, TitleScene, WorldMapScene, OverworldScene, QuizBattleScene, DexScene]
+  // 부팅 → 타이틀 → 월드맵(지역 지도) → 오버월드 → 배틀/도감/분류 게임
+  scene: [BootScene, TitleScene, WorldMapScene, OverworldScene, QuizBattleScene, DexScene, SortGameScene]
 };
 
 // 디버그·스모크 테스트에서 씬 전환을 확인하기 위해 전역에 보관

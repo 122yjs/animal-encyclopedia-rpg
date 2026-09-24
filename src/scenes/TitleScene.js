@@ -99,7 +99,10 @@ export default class TitleScene extends Phaser.Scene {
     this.dexButton = createButton("도감 보기", () => this.openDex(), { className: "title-dex" });
     this.dexButton.id = "title-dex";
     this.dexButton.dataset.action = "open-dex";
-    actions.append(this.startButton, this.dexButton);
+    this.sortButton = createButton("분류 게임", () => this.openSortGame(), { className: "title-sort" });
+    this.sortButton.id = "title-sort";
+    this.sortButton.dataset.action = "open-sort-game";
+    actions.append(this.startButton, this.dexButton, this.sortButton);
 
     const footer = createElement("footer", "title-footer");
     footer.append(
@@ -124,6 +127,7 @@ export default class TitleScene extends Phaser.Scene {
     this._starting = true;
     this.startButton.disabled = true;
     this.dexButton.disabled = true;
+    this.sortButton.disabled = true;
     this.ui.root.classList.add("is-leaving");
     this.cameras.main.fadeOut(FADE_MS, 24, 16, 8);
     this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
@@ -134,5 +138,10 @@ export default class TitleScene extends Phaser.Scene {
   openDex() {
     if (this._starting) return;
     this.scene.start("DexScene", { from: "TitleScene" });
+  }
+
+  openSortGame() {
+    if (this._starting) return;
+    this.scene.start("SortGameScene", { from: "TitleScene" });
   }
 }

@@ -246,7 +246,9 @@ export default class WorldMapScene extends Phaser.Scene {
     this.primaryButton.id = "world-map-primary";
     this.dexButton = createButton("도감", () => this.openDex());
     this.dexButton.id = "world-map-dex";
-    actions.append(this.primaryButton, this.dexButton);
+    this.sortButton = createButton("분류 게임", () => this.openSortGame());
+    this.sortButton.id = "world-map-sort";
+    actions.append(this.primaryButton, this.dexButton, this.sortButton);
 
     this.travelStatus = createElement("p", "nav-map-live");
     this.travelStatus.id = "world-map-travel-status";
@@ -461,7 +463,7 @@ export default class WorldMapScene extends Phaser.Scene {
   }
 
   setControlsDisabled(disabled) {
-    [...this.nodeButtons, ...this.stopButtons, this.primaryButton, this.dexButton, this.dialogConfirm, this.dialogKeep]
+    [...this.nodeButtons, ...this.stopButtons, this.primaryButton, this.dexButton, this.sortButton, this.dialogConfirm, this.dialogKeep]
       .forEach((button) => {
         button.disabled = disabled;
       });
@@ -551,7 +553,7 @@ export default class WorldMapScene extends Phaser.Scene {
       return;
     }
     if (event.key !== "Enter" && event.key !== " ") return;
-    if (event.target.closest("#world-map-dex, #world-map-primary, #world-map-order-confirm, #world-map-order-keep")) return;
+    if (event.target.closest("#world-map-dex, #world-map-sort, #world-map-primary, #world-map-order-confirm, #world-map-order-keep")) return;
     event.preventDefault();
     const regionId = event.target.closest("[data-region-id]")?.dataset.regionId;
     if (regionId) {
@@ -580,6 +582,17 @@ export default class WorldMapScene extends Phaser.Scene {
       from: "WorldMapScene",
       regionId: this.selectedRegionId,
       currentRegionId: this.currentRegionId
+    });
+  }
+
+  openSortGame() {
+    if (this._starting || this.traveling || this.orderDialogOpen) return;
+    this._starting = true;
+    this.ui?.destroy();
+    this.scene.start("SortGameScene", {
+      from: "WorldMapScene",
+      regionId: this.selectedRegionId,
+      returnData: { selectedRegionId: this.selectedRegionId, currentRegionId: this.currentRegionId }
     });
   }
 

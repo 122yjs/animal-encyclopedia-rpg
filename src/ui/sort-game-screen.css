@@ -1,0 +1,426 @@
+/* 분류 게임 — 공통 ScreenUi 종이 카드·나무 테두리 위에 퀴즈 배틀과 같은 픽셀 배지·칩 언어로 3칸 판을 그립니다. */
+
+.sort-screen {
+  --sort-yes: #e6ecc0;
+  --sort-no: #eedbd9;
+  --sort-good: #7e9c3c;
+  --sort-bad: #c0616f;
+  background:
+    linear-gradient(rgb(172 206 193 / .78), rgb(157 174 124 / .84)),
+    var(--sort-forest, none) center / cover no-repeat,
+    var(--ui-mint);
+}
+
+.sort-header {
+  width: min(100%, 1200px);
+  flex-wrap: wrap;
+}
+
+.sort-heading {
+  min-width: 0;
+  flex: 1 1 280px;
+}
+
+.sort-heading .ui-kicker {
+  color: var(--ui-muted);
+  letter-spacing: .06em;
+}
+
+.sort-heading .ui-muted {
+  margin-top: 4px;
+  font-size: 16px;
+}
+
+.sort-header-side {
+  justify-content: flex-end;
+}
+
+/* 점수 — 전투 HUD 계기판과 같은 민트 판 */
+.sort-score {
+  padding: 4px 12px;
+  border: 2px solid var(--ui-deep);
+  border-radius: 6px;
+  background: var(--ui-mint);
+  box-shadow: inset 0 0 0 2px var(--ui-paper), 0 2px 0 var(--ui-wood-shadow);
+  font-size: 18px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.sort-body {
+  display: grid;
+  gap: 18px;
+}
+
+.sort-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px 16px;
+}
+
+/* 지금 문제 — 전투 문제와 같은 분홍 「?」 배지 */
+.sort-question {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1 1 100%;
+  font-size: clamp(20px, 2.6vw, 26px);
+  font-weight: 900;
+  line-height: 1.35;
+  color: var(--ui-ink);
+  word-break: keep-all;
+}
+
+.sort-question::before {
+  content: "?";
+  display: inline-grid;
+  flex: 0 0 34px;
+  place-items: center;
+  height: 34px;
+  border: 2px solid var(--ui-deep);
+  border-radius: 4px;
+  background: var(--ui-rose);
+  box-shadow: 0 2px 0 var(--ui-wood-shadow);
+  color: var(--ui-paper);
+  font-size: 20px;
+  font-weight: 900;
+  line-height: 1;
+  text-shadow: 1px 1px 0 var(--ui-deep);
+}
+
+.sort-select {
+  display: grid;
+  gap: 4px;
+  flex: 1 1 200px;
+}
+
+.sort-select select {
+  min-height: 48px;
+  padding: 8px 12px;
+  border: 2px solid var(--ui-deep);
+  border-radius: 4px;
+  background: var(--ui-paper);
+  box-shadow: 0 3px 0 var(--ui-wood-shadow);
+  color: var(--ui-ink);
+  font: inherit;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sort-select select:focus-visible {
+  outline: 3px solid var(--ui-deep);
+  outline-offset: 3px;
+}
+
+.sort-control-actions {
+  flex: 0 1 auto;
+}
+
+.sort-board {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: stretch;
+}
+
+.sort-zone {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 260px;
+  padding: 16px;
+  cursor: pointer;
+}
+
+.sort-zone--yes { background: radial-gradient(circle at 1px 1px, rgb(92 83 106 / .045) 1px, transparent 1px) 0 0 / 8px 8px, var(--sort-yes); background-clip: padding-box; }
+.sort-zone--no { background: radial-gradient(circle at 1px 1px, rgb(92 83 106 / .045) 1px, transparent 1px) 0 0 / 8px 8px, var(--sort-no); background-clip: padding-box; }
+
+.sort-zone-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 10px;
+}
+
+/* 칸 표시 — O / X / ? 픽셀 배지 */
+.sort-zone-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 2px solid var(--ui-deep);
+  border-radius: 4px;
+  background: var(--ui-honey);
+  box-shadow: 0 2px 0 var(--ui-wood-shadow);
+  font-size: 20px;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--ui-paper);
+  text-shadow: 1px 1px 0 var(--ui-deep);
+}
+
+.sort-zone--pool .sort-zone-mark { color: var(--ui-ink); text-shadow: none; }
+.sort-zone--yes .sort-zone-mark { background: var(--sort-good); }
+.sort-zone--no .sort-zone-mark { background: var(--sort-bad); }
+
+.sort-zone-title {
+  font-size: 22px;
+}
+
+.sort-zone-count {
+  padding: 1px 8px;
+  border: 2px solid var(--ui-deep);
+  border-radius: 4px;
+  background: var(--ui-paper);
+  font-size: 14px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.sort-zone-hint {
+  grid-column: 1 / -1;
+  margin-top: 6px;
+  font-size: 15px;
+}
+
+.sort-zone.is-armed,
+.sort-zone.is-drop-target {
+  outline: 3px dashed var(--ui-deep);
+  outline-offset: -2px;
+}
+
+.sort-zone.is-correct { outline: 4px solid var(--sort-good); outline-offset: -2px; }
+.sort-zone.needs-work { outline: 4px solid var(--sort-bad); outline-offset: -2px; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .sort-zone.is-armed { animation: sort-armed 1s steps(2, end) infinite; }
+}
+
+@keyframes sort-armed {
+  50% { outline-color: var(--ui-rose); }
+}
+
+.sort-tokens {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 12px 10px;
+  align-content: start;
+  flex: 1 1 auto;
+}
+
+.sort-zone--pool.is-empty .sort-tokens::after {
+  content: "모든 카드를 옮겼어요. 채점하기를 눌러 봐요!";
+  grid-column: 1 / -1;
+  padding: 12px;
+  border: 2px dashed var(--ui-wood-shadow);
+  border-radius: 4px;
+  color: var(--ui-muted);
+  font-size: 15px;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* 동물 카드 — 두꺼운 외곽선과 계단식 그림자의 작은 도감 카드 */
+.sort-token {
+  position: relative;
+  display: grid;
+  gap: 4px;
+  justify-items: center;
+  min-height: 48px;
+  padding: 6px 6px 5px;
+  border: 3px solid var(--ui-deep);
+  border-radius: 4px;
+  background: var(--ui-paper);
+  color: var(--ui-ink);
+  font: inherit;
+  cursor: grab;
+  box-shadow: inset 0 0 0 2px var(--ui-honey), 0 3px 0 var(--ui-wood-shadow);
+  transition: transform .12s steps(2, end), box-shadow .12s steps(2, end);
+  /* 카드 위에서는 손가락 움직임을 스크롤 대신 끌기로 씁니다. 판 스크롤은 카드 밖이나 가장자리 자동 스크롤로 합니다. */
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* 끄는 동안 — 원래 자리는 빈 홈처럼, 복제본은 손가락을 따라 살짝 기울어 떠 있습니다 */
+.sort-token.is-dragging {
+  opacity: .35;
+  transform: none;
+  box-shadow: inset 0 0 0 2px var(--ui-honey);
+  animation: none;
+}
+
+.sort-ghost {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 50;
+  margin: 0;
+  pointer-events: none;
+  cursor: grabbing;
+  rotate: -4deg;
+  background: var(--ui-lime);
+  box-shadow: inset 0 0 0 2px var(--ui-paper), 0 8px 0 rgb(92 83 106 / .35);
+  transition: none;
+  animation: none;
+}
+
+.sort-ghost::before,
+.sort-ghost::after { content: none; }
+
+.sort-screen.is-dragging,
+.sort-screen.is-dragging * { cursor: grabbing; }
+
+.sort-zone.is-drop-target {
+  outline-style: solid;
+  animation: none;
+}
+
+.sort-token:hover { transform: translateY(-2px); box-shadow: inset 0 0 0 2px var(--ui-honey), 0 5px 0 var(--ui-wood-shadow); }
+.sort-token:active { cursor: grabbing; transform: translateY(1px); box-shadow: inset 0 0 0 2px var(--ui-honey), 0 1px 0 var(--ui-wood-shadow); }
+.sort-token:focus-visible { outline: 3px solid var(--ui-deep); outline-offset: 3px; }
+
+.sort-token.is-selected {
+  background: var(--ui-lime);
+  transform: translateY(-4px);
+  box-shadow: inset 0 0 0 2px var(--ui-paper), 0 6px 0 var(--ui-wood-shadow);
+}
+
+/* 고른 카드 위의 ▼ 커서 */
+.sort-token.is-selected::before {
+  content: "";
+  position: absolute;
+  top: -15px;
+  left: 50%;
+  border-inline: 7px solid transparent;
+  border-top: 8px solid var(--ui-deep);
+  translate: -50% 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .sort-token.is-selected::before { animation: sort-caret .8s steps(2, end) infinite; }
+}
+
+.sort-token.is-correct { border-color: var(--sort-good); background: #e3ecb8; }
+.sort-token.is-wrong { border-color: var(--sort-bad); background: #f3d6d8; }
+
+/* 채점 도장 — 카드 모서리의 O / X 배지 */
+.sort-token.is-correct::after,
+.sort-token.is-wrong::after {
+  position: absolute;
+  top: -9px;
+  right: -9px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--ui-deep);
+  border-radius: 4px;
+  color: var(--ui-paper);
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1;
+  text-shadow: 1px 1px 0 var(--ui-deep);
+  box-shadow: 0 2px 0 var(--ui-wood-shadow);
+}
+
+.sort-token.is-correct::after { content: "O"; background: var(--sort-good); }
+.sort-token.is-wrong::after { content: "X"; background: var(--sort-bad); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .sort-token.is-wrong { animation: sort-shake .2s steps(2, end) 4; }
+  .sort-token.is-correct { animation: sort-hop .36s steps(3, end) 1; }
+}
+
+.sort-token-art {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 2px solid var(--ui-deep);
+  border-radius: 2px;
+  background: var(--ui-mint);
+}
+
+.sort-token-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 35%;
+}
+
+.sort-token-emoji {
+  font-size: 36px;
+  line-height: 1;
+}
+
+.sort-token-name {
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+/* 결과 — 전투 대화창과 같은 ▼ 넘김 표시 */
+.sort-feedback {
+  position: relative;
+  padding-right: 44px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.sort-feedback::after {
+  content: "";
+  position: absolute;
+  right: 18px;
+  bottom: 14px;
+  border-inline: 6px solid transparent;
+  border-top: 7px solid var(--ui-deep);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .sort-feedback::after { animation: sort-caret .9s steps(2, end) infinite; }
+}
+
+.sort-feedback[data-tone="good"] { background: #e3ecb8; background-clip: padding-box; }
+.sort-feedback[data-tone="warn"] { background: #f5e1c9; background-clip: padding-box; }
+
+@keyframes sort-shake {
+  0%, 100% { translate: 0; }
+  50% { translate: -3px; }
+}
+
+@keyframes sort-hop {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -5px; }
+}
+
+@keyframes sort-caret {
+  50% { translate: 0 3px; }
+}
+
+@media (max-width: 860px) {
+  .sort-board { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .sort-zone--pool { grid-column: 1 / -1; min-height: 0; }
+}
+
+@media (max-width: 520px) {
+  .sort-heading .ui-muted { display: none; }
+  .sort-header { margin-bottom: 12px; padding-block: 8px; }
+  .sort-body { gap: 14px; }
+  .sort-controls { gap: 10px; }
+  .sort-zone { padding: 12px; }
+  .sort-zone--pool.is-empty .sort-zone-hint { display: none; }
+  .sort-board { grid-template-columns: minmax(0, 1fr); }
+  .sort-tokens { grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); }
+  .sort-control-actions, .sort-control-actions .ui-button { flex: 1 1 auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sort-token { transition: none; }
+}
