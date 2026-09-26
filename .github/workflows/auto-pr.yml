@@ -34,7 +34,10 @@ jobs:
               base="master"
             fi
           fi
-          if gh pr view --head "$branch" >/dev/null 2>&1; then
+          # gh pr view 에는 --head 가 없다. 열린 PR만 보려면 gh pr list --head 를 쓴다.
+          # gh pr view <branch> 는 머지된 PR도 찾아서, 같은 브랜치의 새 PR 생성을 막는다.
+          open_pr="$(gh pr list --head "$branch" --json number --jq '.[0].number')"
+          if [ -n "$open_pr" ]; then
             echo "PR already exists for $branch"
             exit 0
           fi
