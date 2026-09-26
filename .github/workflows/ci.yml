@@ -5,6 +5,14 @@ on:
   push:
     branches: [main, master]
 
+# reusable-ci.yml 잡이 요청하는 토큰 권한과 같아야 한다.
+# 호출 쪽에서 이 권한을 주지 않으면 잡이 시작되기 전에 startup_failure가 난다.
+permissions:
+  contents: read
+  pull-requests: write
+  checks: read
+  statuses: read
+
 jobs:
   call-reusable:
     uses: 122yjs/gha-reusable/.github/workflows/reusable-ci.yml@main
