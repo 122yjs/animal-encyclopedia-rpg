@@ -17,7 +17,12 @@ export default defineConfig(({ mode }) => {
       host: "127.0.0.1",
       port: eco ? 5174 : 5173,
       strictPort: true,
-      open: false
+      open: false,
+      // 휴대폰·다른 기기에서 `tailscale serve`(tailnet 전용 HTTPS) 주소로 미리보기할 수 있게 허용합니다.
+      allowedHosts: [".ts.net"]
+    },
+    preview: {
+      allowedHosts: [".ts.net"]
     },
     build: {
       outDir: eco ? "dist-eco" : "dist",
