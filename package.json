@@ -5,9 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:eco": "vite --mode eco",
     "build": "vite build",
+    "build:eco": "vite build --mode eco",
     "preview": "vite preview",
-    "deploy": "npm run build && npx --yes wrangler@4.131.2 pages deploy dist --project-name animal-encyclopedia-rpg --branch main"
+    "preview:eco": "vite preview --mode eco",
+    "deploy": "npm run build && npx --yes wrangler@4.131.2 pages deploy dist --project-name animal-encyclopedia-rpg --branch main",
+    "deploy:eco": "npm run build:eco && npx --yes wrangler@4.131.2 pages deploy dist-eco --project-name animal-encyclopedia-eco --branch preview"
   },
   "dependencies": {
     "phaser": "^3.88.2"

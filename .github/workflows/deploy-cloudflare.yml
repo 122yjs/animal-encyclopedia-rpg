@@ -14,7 +14,17 @@ concurrency:
 
 jobs:
   deploy:
+    name: deploy (${{ matrix.edition }})
     runs-on: ubuntu-latest
+    strategy:
+      # 기본판과 생태계 확장팩은 서로 다른 Pages 프로젝트에 따로 올립니다. 한쪽이 실패해도 다른 쪽은 계속합니다.
+      fail-fast: false
+      matrix:
+        include:
+          - edition: base
+            script: deploy
+          - edition: eco
+            script: deploy:eco
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -28,8 +38,20 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # 확장팩 프로젝트가 아직 없으면 처음 한 번만 만듭니다. 목록 조회가 실패하면 여기서 멈춥니다.
+      - name: Create eco Pages project if missing
+        if: matrix.edition == 'eco'
+        run: |
+          projects="$(npx --yes wrangler@4.131.2 pages project list)"
+          if ! grep -q "animal-encyclopedia-eco" <<<"$projects"; then
+            npx --yes wrangler@4.131.2 pages project create animal-encyclopedia-eco --production-branch main
+          fi
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
       - name: Build and deploy
-        run: npm run deploy
+        run: npm run ${{ matrix.script }}
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

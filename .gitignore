@@ -1,5 +1,6 @@
 node_modules/
 dist/
+dist-eco/
 .DS_Store
 artifacts/
 graphify-out/

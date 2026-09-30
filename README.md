@@ -11,6 +11,21 @@ npm install
 npm run dev
 ```
 
+## 생태계 확장팩 (4학년 2학기 「생물과 환경」)
+
+같은 저장소에서 기본판과 따로 빌드해 다른 주소로 배포하는 확장판입니다. 기본판의 동작과 배포 주소는 그대로입니다.
+
+| | 기본판 | 생태계 확장팩 |
+|---|---|---|
+| 개발 서버 | `npm run dev` (5173) | `npm run dev:eco` (5174) |
+| 빌드 | `npm run build` → `dist/` | `npm run build:eco` → `dist-eco/` |
+| 배포 | `npm run deploy` → `animal-encyclopedia-rpg` | `npm run deploy:eco` → `animal-encyclopedia-eco` (완성 전까지 `preview` 브랜치) |
+
+- `vite --mode eco`에서는 `@edition` 별칭이 `src/eco`를, 그 밖의 모드에서는 `src/base`를 가리킵니다. `src/main.js`는 이 별칭의 씬 목록만 불러오므로 기본판 번들에는 `src/eco` 코드가 들어가지 않습니다.
+- 확장팩은 기본판 씬을 같은 키의 하위 클래스로 바꿔 끼우거나 새 씬을 목록 끝에 더합니다(`src/eco/scenes.js`). 확장팩에만 필요한 변경은 `src/eco`에 둡니다. 공통 파일을 고치면 두 판이 함께 바뀝니다.
+- 브라우저 탭 제목은 `.env`(기본판)와 `.env.eco`(확장팩)의 `VITE_APP_TITLE`입니다.
+- 주소(오리진)가 달라 저장 기록도 따로입니다. 기본판 기록은 확장팩으로 넘어가지 않습니다.
+
 ## 화면과 비주얼 (G6 고밀도 픽셀아트)
 
 배경·동물·지도 그림은 잎·돌·물결 결이 살아 있는 고밀도 픽셀아트입니다. 학습용 실제 사진은 픽셀화하지 않고 원본 비율과 부드러운 표시를 유지합니다.
@@ -38,6 +53,8 @@ npm run dev
 운영 주소: **https://animal-encyclopedia-rpg.pages.dev/** (Cloudflare Pages 무료 플랜, 정적 파일만 제공).
 
 main 브랜치 push와 수동 실행(`workflow_dispatch`)은 `.github/workflows/deploy-cloudflare.yml` GitHub Actions 워크플로가 담당합니다. `npm ci`로 설치한 뒤 기존 `npm run deploy`를 그대로 실행해 같은 `animal-encyclopedia-rpg` 프로젝트에 업로드하므로 로컬 수동 배포와 CI가 같은 빌드·배포 경로를 사용합니다. Cloudflare Pages의 Git 연동(native Git integration)을 새로 연결한 것이 아니라 저장소 Actions가 Wrangler로 직접 업로드(direct upload)하는 방식이며, 운영 주소는 그대로 **https://animal-encyclopedia-rpg.pages.dev/**입니다. 워크플로는 `contents: read` 권한만 사용하고, 저장소 Secrets의 `CLOUDFLARE_API_TOKEN`·`CLOUDFLARE_ACCOUNT_ID`를 deploy 단계에서만 환경 변수로 주입합니다. `production` 동시성 그룹은 진행 중인 업로드를 취소하지 않습니다(`cancel-in-progress: false`).
+
+같은 워크플로가 `deploy (base)`와 `deploy (eco)` 두 잡으로 기본판과 생태계 확장팩을 따로 올리며, 한쪽이 실패해도 다른 쪽은 계속합니다. 확장팩 잡은 Pages 프로젝트 `animal-encyclopedia-eco`가 없으면 같은 토큰으로 처음 한 번 만들고, 완성 전까지 `preview` 브랜치로 배포합니다. 예상 주소는 `https://preview.animal-encyclopedia-eco.pages.dev/`이며, `pages.dev` 이름이 이미 쓰이고 있으면 Cloudflare가 다른 하위 도메인을 붙이므로 실제 주소는 첫 배포 로그에서 확인합니다. 정식 공개 때는 `deploy:eco`의 `--branch preview`를 `--branch main`으로 바꿉니다.
 
 배포 성공 여부와 실행 기록은 GitHub 저장소의 Actions → Deploy Cloudflare Pages에서 확인합니다.
 
