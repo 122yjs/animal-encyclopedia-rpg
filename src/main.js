@@ -1,12 +1,7 @@
 // Phaser 월드와 독립된 읽기용 UI는 같은 CSS viewport를 사용합니다.
 import Phaser from "phaser/dist/phaser-arcade-physics.min.js";
-import BootScene from "./scenes/BootScene.js";
-import TitleScene from "./scenes/TitleScene.js";
-import WorldMapScene from "./scenes/WorldMapScene.js";
-import OverworldScene from "./scenes/OverworldScene.js";
-import QuizBattleScene from "./scenes/QuizBattleScene.js";
-import DexScene from "./scenes/DexScene.js";
-import SortGameScene from "./scenes/SortGameScene.js";
+// 빌드 모드에 따라 기본판(src/base) 또는 생태계 확장팩(src/eco) 씬 목록입니다 (vite.config.js의 @edition 별칭).
+import scenes from "@edition/scenes.js";
 import "./ui/screen-ui.css";
 
 const config = {
@@ -29,8 +24,7 @@ const config = {
     mode: Phaser.Scale.RESIZE,
     autoCenter: Phaser.Scale.CENTER_BOTH
   },
-  // 부팅 → 타이틀 → 월드맵(지역 지도) → 오버월드 → 배틀/도감/분류 게임
-  scene: [BootScene, TitleScene, WorldMapScene, OverworldScene, QuizBattleScene, DexScene, SortGameScene]
+  scene: scenes
 };
 
 // 디버그·스모크 테스트에서 씬 전환을 확인하기 위해 전역에 보관
