@@ -5,7 +5,12 @@
 import baseScenes from "../base/scenes.js";
 import TitleScene from "../scenes/TitleScene.js";
 import EcoTitleScene from "./scenes/EcoTitleScene.js";
+import OverworldScene from "../scenes/OverworldScene.js";
+import EcoOverworldScene from "./scenes/EcoOverworldScene.js";
 
-const replacements = new Map([[TitleScene, EcoTitleScene]]);
+const replacements = new Map([
+  [TitleScene, EcoTitleScene],
+  [OverworldScene, EcoOverworldScene]
+]);
 
 export default baseScenes.map((Scene) => replacements.get(Scene) || Scene);
