@@ -6,3 +6,6 @@ artifacts/
 graphify-out/
 visual-evidence/
 .wrangler/
+
+# Claude Code 클라우드 세션 설치 기록
+.claude/.setup-stamps/
