@@ -1,5 +1,5 @@
 // 확장팩 오버월드 — 기본판 탐험에 '생태 돋보기'(교과서 1·2차시)를 더합니다.
-// 지역마다 반짝이는 자리에 다가가 Space나 🔍 버튼으로 카드를 뒤집고,
+// 동물 조우처럼 반짝이는 자리를 밟으면 바로 카드가 열리고,
 // '생물 요소'와 '비생물 요소' 바구니 중 하나에 넣습니다. 틀리면 한 줄 이유를 보고 바로 다시 고릅니다.
 import Phaser from "phaser/dist/phaser-arcade-physics.min.js";
 import OverworldScene from "../../scenes/OverworldScene.js";
@@ -10,21 +10,22 @@ import { ECO_KINDS, ecoElements, ecoKindOf, ecoRegions } from "../data/ecosystem
 import { boardStatus, hasAnyFound, isFound, markFound } from "../systems/EcoStore.js";
 import "../ui/eco-scan.css";
 
-/** 플레이어 몸 중심에서 이 거리(px) 안이면 살펴볼 수 있습니다. */
-const SCAN_REACH = 60;
+/** 발밑에서 이 거리(px) 안으로 들어오면 카드가 열립니다. */
+const TOUCH_REACH = 26;
+/** '나중에'로 닫은 자리는 이만큼 떨어졌다 다시 와야 열립니다 (동물 조우 무장과 같은 방식). */
+const REARM_DISTANCE = 64;
 const GLOW = 0xf4d35e;
 
 export default class EcoOverworldScene extends OverworldScene {
   create() {
     this.ecoSpots = [];
-    this.ecoNear = null;
     this.ecoCard = null;
     super.create();
     if (!this.player) return;
     this.createEcoSpots();
     if (!hasAnyFound()) {
       this.time.delayedCall(1400, () => {
-        if (!this.ecoCard) this.hud?.showToast("반짝이는 곳에 다가가 🔍 살펴보세요!", 3200);
+        if (!this.ecoCard) this.hud?.showToast("반짝이는 곳을 밟아 보세요!", 3200);
       });
     }
   }
@@ -37,7 +38,9 @@ export default class EcoOverworldScene extends OverworldScene {
         const x = spot.tx * TILE;
         const y = spot.ty * TILE;
         if (spot.draw) this.drawEcoProp(spot.draw, x, y);
-        const entry = { regionId, spot, x, y, marker: null };
+        const entry = { regionId, spot, x, y, marker: null, armed: true };
+        // 배틀·도감에서 돌아온 자리가 반짝이 위라면, 한 번 떨어진 뒤에만 열립니다.
+        entry.armed = this.distanceToEco(entry) > REARM_DISTANCE;
         this.buildEcoMarker(entry);
         this.ecoSpots.push(entry);
       });
@@ -97,15 +100,12 @@ export default class EcoOverworldScene extends OverworldScene {
       const ring = this.add.circle(0, 0, 10, GLOW, 0).setStrokeStyle(2, GLOW);
       const core = this.add.star(0, 0, 4, 3, 8, 0xfff7c9).setStrokeStyle(1, 0xc5a276);
       parts.push(ring, core);
+
       this.tweens.add({
         targets: ring, scale: 2, alpha: 0, duration: 1300, repeat: -1, ease: "Sine.easeOut",
         onRepeat: () => ring.setScale(1).setAlpha(1)
       });
       this.tweens.add({ targets: core, angle: 45, scale: 1.2, duration: 700, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
-      // 가까이 온 아이가 누를 수 있도록 넉넉한 누름 영역을 둡니다.
-      const hit = this.add.circle(0, 0, 22, 0xffffff, 0.001).setInteractive({ useHandCursor: true });
-      hit.on("pointerdown", () => this.onEcoSpotTapped(entry));
-      parts.push(hit);
     }
     entry.marker = this.add.container(entry.x, entry.y, parts)
       .setDepth(9)
@@ -115,15 +115,6 @@ export default class EcoOverworldScene extends OverworldScene {
 
   distanceToEco(entry) {
     return Phaser.Math.Distance.Between(this.player.x, this.player.y + 8, entry.x, entry.y);
-  }
-
-  onEcoSpotTapped(entry) {
-    if (!this.canScan()) return;
-    if (this.distanceToEco(entry) > SCAN_REACH * 1.6) {
-      this.hud?.showToast("조금 더 가까이 가 보세요!", 1600);
-      return;
-    }
-    this.openEcoCard(entry);
   }
 
   canScan() {
@@ -138,16 +129,6 @@ export default class EcoOverworldScene extends OverworldScene {
     const panel = this.hud.root.querySelector(".world-hud__panel");
     this.ecoBoardEl = createElement("p", "eco-hud__board");
     panel?.append(this.ecoBoardEl);
-
-    this.ecoScanBtn = createButton("🔍 살펴보기", () => {
-      this.ecoScanBtn.blur();
-      if (this.ecoNear && this.canScan()) this.openEcoCard(this.ecoNear);
-    }, { primary: true, className: "eco-hud__scan" });
-    this.ecoScanBtn.hidden = true;
-    ["pointerdown", "pointerup", "click"].forEach((type) => {
-      this.ecoScanBtn.addEventListener(type, (event) => event.stopPropagation());
-    });
-    this.hud.root.append(this.ecoScanBtn);
     this.refreshHud();
   }
 
@@ -160,11 +141,6 @@ export default class EcoOverworldScene extends OverworldScene {
     if (region) {
       this.ecoBoardEl.textContent = `🔍 ${region.label} ${status.count}/${status.target}${status.complete ? " ★" : ""}`;
     }
-  }
-
-  setupInput() {
-    super.setupInput();
-    this.ecoKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
   }
 
   // ─── 매 프레임 ──────────────────────────────────────────
@@ -182,26 +158,19 @@ export default class EcoOverworldScene extends OverworldScene {
     super.update(time, delta);
     if (!this.player || !this.ecoSpots) return;
 
-    let near = null;
-    let best = SCAN_REACH;
-    if (this.canScan()) {
-      for (const entry of this.ecoSpots) {
-        if (isFoundCached(entry)) continue;
-        const d = this.distanceToEco(entry);
-        if (d < best) {
-          best = d;
-          near = entry;
-        }
+    // 씬 생성 직후(배틀에서 돌아온 직후 등)에는 동물 조우처럼 잠깐 쉽니다.
+    if (this.time.now - (this.createdAt ?? 0) < 500) return;
+    for (const entry of this.ecoSpots) {
+      if (isFoundCached(entry)) continue;
+      const d = this.distanceToEco(entry);
+      if (!entry.armed) {
+        if (d > REARM_DISTANCE) entry.armed = true;
+        continue;
       }
-    }
-    if (near !== this.ecoNear) {
-      this.ecoNear?.marker?.setScale(1);
-      near?.marker?.setScale(1.35);
-      this.ecoNear = near;
-      if (this.ecoScanBtn) this.ecoScanBtn.hidden = !near;
-    }
-    if (near && this.ecoKey && Phaser.Input.Keyboard.JustDown(this.ecoKey)) {
-      this.openEcoCard(near);
+      if (d < TOUCH_REACH && this.canScan()) {
+        this.openEcoCard(entry);
+        return;
+      }
     }
   }
 
@@ -217,7 +186,6 @@ export default class EcoOverworldScene extends OverworldScene {
     this.hud?.releasePad?.();
     this.player.setVelocity(0, 0);
     this.syncPlayerSurface(false);
-    if (this.ecoScanBtn) this.ecoScanBtn.hidden = true;
     this.hud?.root.querySelector(".world-hud__toast")?.setAttribute("hidden", "");
     const firstTime = !hasAnyFound();
 
@@ -225,7 +193,7 @@ export default class EcoOverworldScene extends OverworldScene {
       if (!this.ecoCard) return;
       this.ecoCard.destroy();
       this.ecoCard = null;
-      this.ecoNear = null;
+      entry.armed = false;
       if (isFound(regionId, spot.id)) {
         entry.found = true;
         this.buildEcoMarker(entry);
@@ -244,43 +212,21 @@ export default class EcoOverworldScene extends OverworldScene {
     const panel = createElement("article", "ui-card eco-scan__panel");
     const kicker = createElement("p", "ui-kicker eco-scan__kicker", `생태 돋보기 · ${ecoRegions[regionId].label}`);
 
-    const card = createElement("button", "eco-scan__card");
-    card.type = "button";
-    card.setAttribute("aria-label", "카드 뒤집기");
-    const back = createElement("span", "eco-scan__back");
-    back.append(createElement("span", "eco-scan__glass", "🔍"), createElement("span", "", "눌러서 문질러 보기"));
+    const card = createElement("div", "eco-scan__card is-open");
+    card.setAttribute("aria-label", `${spot.id} 카드`);
     const face = createElement("span", "eco-scan__face");
     face.append(
       createElement("span", "eco-scan__icon", element.icon),
       createElement("strong", "eco-scan__name", spot.id),
       createElement("span", "eco-scan__note", spot.note)
     );
-    face.hidden = true;
-    card.append(back, face);
+    card.append(face);
 
     const prompt = createElement("p", "eco-scan__prompt", "어느 바구니에 넣을까요?");
     const feedback = createElement("p", "eco-scan__feedback");
     feedback.setAttribute("aria-live", "polite");
     const bins = createElement("div", "eco-scan__bins");
     const actions = createElement("div", "ui-actions eco-scan__actions");
-    prompt.hidden = true;
-    bins.hidden = true;
-
-    const reveal = () => {
-      if (!face.hidden) return;
-      back.hidden = true;
-      face.hidden = false;
-      card.classList.add("is-open");
-      card.setAttribute("aria-label", `${spot.id} 카드`);
-      card.disabled = true;
-      prompt.hidden = false;
-      bins.hidden = false;
-      bins.querySelector("button")?.focus({ preventScroll: true });
-    };
-    card.addEventListener("click", (event) => {
-      event.stopPropagation();
-      reveal();
-    });
 
     const term = (label) => {
       const node = document.createElement("b");
@@ -336,7 +282,7 @@ export default class EcoOverworldScene extends OverworldScene {
     actions.append(createButton("나중에", close));
     panel.append(kicker, card, prompt, bins, feedback, actions);
     screen.root.append(panel);
-    queueMicrotask(() => card.isConnected && card.focus({ preventScroll: true }));
+    queueMicrotask(() => bins.querySelector("button")?.focus({ preventScroll: true }));
   }
 }
 

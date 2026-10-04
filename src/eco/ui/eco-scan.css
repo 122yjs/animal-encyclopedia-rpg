@@ -1,24 +1,9 @@
-/* 생태 돋보기 — HUD 보드 줄, 살펴보기 버튼, 카드·바구니 창. 재질은 screen-ui.css를 그대로 씁니다. */
+/* 생태 돋보기 — HUD 보드 줄, 카드·바구니 창. 재질은 screen-ui.css를 그대로 씁니다. */
 .eco-hud__board {
   margin: 6px 0 0;
   font-size: 13px;
   font-weight: 800;
   color: var(--ui-ink);
-}
-
-.eco-hud__scan {
-  position: absolute;
-  right: max(14px, env(safe-area-inset-right));
-  bottom: max(18px, calc(env(safe-area-inset-bottom) + 8px));
-  min-height: 60px;
-  font-size: 18px;
-  pointer-events: auto;
-}
-
-.eco-hud__scan[hidden] { display: none; }
-
-@media (prefers-reduced-motion: no-preference) {
-  .eco-hud__scan:not([hidden]) { animation: eco-pop .18s steps(3, end); }
 }
 
 /* 월드가 비쳐 보이도록 반투명 배경 위에 카드 한 장만 띄웁니다. */
@@ -47,14 +32,10 @@
   box-shadow: 0 4px 0 var(--ui-wood-shadow);
   color: var(--ui-ink);
   font: inherit;
-  cursor: pointer;
 }
 
-.eco-scan__card:disabled { cursor: default; }
-.eco-scan__card:focus-visible { outline: 3px solid var(--ui-deep); outline-offset: 4px; }
 .eco-scan__card.is-open { background: var(--ui-paper); }
 
-.eco-scan__back,
 .eco-scan__face {
   display: grid;
   place-items: center;
@@ -63,24 +44,11 @@
   height: 100%;
 }
 
-.eco-scan__back[hidden],
-.eco-scan__face[hidden] { display: none; }
-
-.eco-scan__back {
-  font-size: 15px;
-  font-weight: 700;
-  background: repeating-linear-gradient(45deg, rgb(197 162 118 / .35) 0 6px, transparent 6px 12px);
-  border-radius: 6px;
-}
-
-.eco-scan__glass { font-size: 44px; line-height: 1; }
 .eco-scan__icon { font-size: 56px; line-height: 1; }
 .eco-scan__name { font-size: 26px; line-height: 1.2; }
 .eco-scan__note { font-size: 15px; color: var(--ui-muted); line-height: 1.4; }
 
 .eco-scan__prompt { font-size: 17px; font-weight: 700; }
-.eco-scan__prompt[hidden],
-.eco-scan__bins[hidden] { display: none; }
 
 .eco-scan__bins {
   display: grid;
