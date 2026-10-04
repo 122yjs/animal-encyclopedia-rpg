@@ -1,0 +1,99 @@
+/* 생태 돋보기 — HUD 보드 줄, 카드·바구니 창. 재질은 screen-ui.css를 그대로 씁니다. */
+.eco-hud__board {
+  margin: 6px 0 0;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ui-ink);
+}
+
+/* 월드가 비쳐 보이도록 반투명 배경 위에 카드 한 장만 띄웁니다. */
+.ui-screen.eco-scan {
+  display: grid;
+  place-items: center;
+  background: rgb(92 83 106 / .5);
+}
+
+.eco-scan__panel {
+  width: min(460px, 100%);
+  display: grid;
+  gap: 14px;
+  justify-items: center;
+  text-align: center;
+}
+
+.eco-scan__card {
+  position: relative;
+  width: 180px;
+  height: 200px;
+  padding: 12px;
+  border: 3px solid var(--ui-deep);
+  border-radius: 10px;
+  background: var(--ui-honey);
+  box-shadow: 0 4px 0 var(--ui-wood-shadow);
+  color: var(--ui-ink);
+  font: inherit;
+}
+
+.eco-scan__card.is-open { background: var(--ui-paper); }
+
+.eco-scan__face {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+  height: 100%;
+}
+
+.eco-scan__icon { font-size: 56px; line-height: 1; }
+.eco-scan__name { font-size: 26px; line-height: 1.2; }
+.eco-scan__note { font-size: 15px; color: var(--ui-muted); line-height: 1.4; }
+
+.eco-scan__prompt { font-size: 17px; font-weight: 700; }
+
+.eco-scan__bins {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  width: 100%;
+}
+
+.eco-scan__bin {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding-inline: 8px;
+  min-height: 96px;
+}
+
+.eco-scan__bin strong { font-size: 18px; }
+.eco-scan__basket { font-size: 28px; line-height: 1.1; }
+.eco-scan__hint { font-size: 13px; font-weight: 600; opacity: .8; }
+.eco-scan .eco-scan__bin--biotic { background: var(--ui-lime); }
+.eco-scan .eco-scan__bin--abiotic { background: var(--ui-mint); }
+.eco-scan__bin.is-miss { opacity: .55; }
+.eco-scan__bin.is-hit { outline: 3px solid var(--ui-deep); outline-offset: 2px; }
+
+.eco-scan__feedback:empty { display: none; }
+.eco-scan__feedback { font-size: 17px; line-height: 1.5; }
+.eco-scan__feedback b { font-weight: 900; }
+.eco-scan__feedback.is-wrong { color: #8a4b5a; }
+.eco-scan__board { font-size: 15px; font-weight: 800; }
+.eco-scan__board.is-complete { padding: 4px 12px; background: var(--ui-lime); border: 2px solid var(--ui-deep); border-radius: 6px; }
+.eco-scan__actions { justify-content: center; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .eco-scan__card.is-open { animation: eco-flip .28s steps(4, end); }
+  .eco-scan__card.is-wrong { animation: eco-shake .2s steps(2, end) 3; }
+  .eco-scan__bin.is-hit { animation: eco-pop .24s steps(3, end); }
+}
+
+@keyframes eco-pop { from { transform: scale(.6); } to { transform: none; } }
+@keyframes eco-flip { 0% { transform: scaleX(1); } 50% { transform: scaleX(.05); } 100% { transform: scaleX(1); } }
+@keyframes eco-shake { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(-8px); } }
+
+@media (max-height: 520px) {
+  .eco-scan__panel { gap: 8px; padding: 12px; }
+  .eco-scan__card { width: 150px; height: 150px; }
+  .eco-scan__icon { font-size: 40px; }
+  .eco-scan__bin { min-height: 72px; }
+}
